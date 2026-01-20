@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "915970499212",
+    "project_id": "carsmarobe-test",
+    "storage_bucket": "carsmarobe-test.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915970499212:android:56d0088ed51c38f195d1a9",
+        "android_client_info": {
+          "package_name": "com.example.vistas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtSrPb3L0sDVcUSmNxmM534TzDjrC7zt8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915970499212:android:aef9defd6522945d95d1a9",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtSrPb3L0sDVcUSmNxmM534TzDjrC7zt8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

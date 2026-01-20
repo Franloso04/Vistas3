@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_blue">#3B82F6</color>
+
+    <color name="bg_app">#121212</color>
+
+    <color name="surface_card">#1E1E1E</color>
+    <color name="white">#1E1E1E</color> <color name="text_main">#E2E8F0</color> <color name="text_secondary">#94A3B8</color> <color name="status_approved_bg">#064E3B</color> <color name="status_approved_text">#6EE7B7</color> <color name="status_pending_bg">#451A03</color> <color name="status_pending_text">#FCD34D</color> <color name="status_rejected_bg">#450A0A</color> <color name="status_rejected_text">#FCA5A5</color> </resources>

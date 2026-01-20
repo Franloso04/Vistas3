@@ -24,7 +24,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Referencias
+        // 1. Vinculación de Vistas
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerHistorial)
         val btnEscanear = view.findViewById<View>(R.id.btnEscanear)
         val searchBar = view.findViewById<EditText>(R.id.searchBar)
@@ -35,7 +35,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
         val chipCategoria = view.findViewById<Chip>(R.id.chipCategoria)
         val chipEstado = view.findViewById<Chip>(R.id.chipEstado)
 
-        // Adapter
+        // 2. Configuración del Adapter
         adapter = GastoAdapter(emptyList(), isSelectionMode = false) {
             val count = adapter.getSelectedCount()
             if (count > 0) {
@@ -51,25 +51,27 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
         recycler.layoutManager = LinearLayoutManager(context)
         recycler.adapter = adapter
 
-        // Observar datos
-        viewModel.gastos.observe(viewLifecycleOwner) { lista ->
+        // 3. OBSERVAMOS LA LISTA FILTRADA (NO LA GLOBAL)
+        // Esto soluciona que el Dashboard se modifique al filtrar aquí.
+        viewModel.gastosFiltrados.observe(viewLifecycleOwner) { lista ->
             adapter.updateData(lista)
         }
 
-        // Buscador
+        // 4. Configuración del Buscador
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { viewModel.filtrarPorTexto(s.toString()) }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
-        // --- FILTROS ---
+        // --- 5. CONFIGURACIÓN DE FILTROS (CHIPS) ---
 
-        // 1. FECHAS
+        // Filtro: Fechas
         chipFechas.setOnClickListener {
             val popup = PopupMenu(requireContext(), chipFechas)
             popup.menu.add("Más recientes")
             popup.menu.add("Más antiguos")
+
             popup.setOnMenuItemClickListener { item ->
                 val esReciente = item.title == "Más recientes"
                 viewModel.ordenarPorFecha(esReciente)
@@ -79,10 +81,12 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             popup.show()
         }
 
-        // 2. CATEGORÍA
+        // Filtro: Categoría
         chipCategoria.setOnClickListener {
             val popup = PopupMenu(requireContext(), chipCategoria)
-            listOf("Todas", "Comida", "Transporte", "Alojamiento", "Suministros").forEach { popup.menu.add(it) }
+            // Añadimos las opciones que coinciden con el Spinner del OCR
+            listOf("Todas", "Comida", "Transporte", "Alojamiento", "Suministros", "Equipamiento").forEach { popup.menu.add(it) }
+
             popup.setOnMenuItemClickListener { item ->
                 val cat = item.title.toString()
                 viewModel.filtrarPorCategoria(cat)
@@ -92,10 +96,11 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             popup.show()
         }
 
-        // 3. ESTADO
+        // Filtro: Estado
         chipEstado.setOnClickListener {
             val popup = PopupMenu(requireContext(), chipEstado)
             listOf("Todos", "APROBADO", "PENDIENTE", "RECHAZADO", "PROCESANDO").forEach { popup.menu.add(it) }
+
             popup.setOnMenuItemClickListener { item ->
                 val est = item.title.toString()
                 viewModel.filtrarPorEstado(est)
@@ -105,28 +110,33 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             popup.show()
         }
 
-        // Navegación
-        btnEscanear.setOnClickListener { findNavController().navigate(R.id.ocrFragment) }
+        // 6. Navegación al OCR
+        btnEscanear.setOnClickListener {
+            findNavController().navigate(R.id.ocrFragment)
+        }
 
-        // Selección
+        // 7. Lógica de Selección
         txtSeleccionar.setOnClickListener {
             val nuevoModo = !adapter.isSelectionMode
             adapter.activarModoSeleccion(nuevoModo)
             txtSeleccionar.text = if (nuevoModo) "Cancelar" else "Seleccionar"
+
             if (!nuevoModo) {
                 btnEliminar.visibility = View.GONE
                 btnEscanear.visibility = View.VISIBLE
             }
         }
 
-        // Eliminar
+        // 8. Lógica de Eliminación
         btnEliminar.setOnClickListener {
             AlertDialog.Builder(requireContext())
-                .setTitle("Eliminar")
-                .setMessage("¿Estás seguro?")
+                .setTitle("Eliminar gastos")
+                .setMessage("¿Estás seguro de que quieres eliminar los tickets seleccionados?")
                 .setPositiveButton("Eliminar") { _, _ ->
                     val ids = adapter.getSelectedIds()
                     viewModel.eliminarGastosSeleccionados(ids)
+
+                    // Salir del modo selección tras borrar
                     adapter.activarModoSeleccion(false)
                     txtSeleccionar.text = "Seleccionar"
                     btnEliminar.visibility = View.GONE

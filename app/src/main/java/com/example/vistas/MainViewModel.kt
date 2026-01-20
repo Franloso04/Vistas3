@@ -9,21 +9,29 @@ import com.example.vistas.model.EstadoGasto
 
 class MainViewModel : ViewModel() {
 
-    private val _gastos = MutableLiveData<List<Gasto>>()
-    val gastos: LiveData<List<Gasto>> = _gastos
+    // 1. DATA GLOBAL (Para Dashboard - Siempre tiene todo)
+    private val _gastosGlobales = MutableLiveData<List<Gasto>>()
+    val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
+    // 2. DATA FILTRADA (Para Historial - Cambia con los filtros)
+    private val _gastosFiltrados = MutableLiveData<List<Gasto>>()
+    val gastosFiltrados: LiveData<List<Gasto>> = _gastosFiltrados
+
+    // Totales (Siempre calculados sobre el global)
     private val _totalMes = MutableLiveData<Double>()
     val totalMes: LiveData<Double> = _totalMes
 
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
-    // Variables de control de filtros
+    // Copia maestra
     private var listaMaestra: List<Gasto> = emptyList()
+
+    // Variables de filtro
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
-    private var ordenMasReciente = true // true = nuevos primero
+    private var ordenMasReciente = true
 
     init {
         cargarDatos()
@@ -31,12 +39,14 @@ class MainViewModel : ViewModel() {
 
     private fun cargarDatos() {
         listaMaestra = FakeRepository.getAllGastos()
-        aplicarFiltros()
+        actualizarGlobales()
+        aplicarFiltros() // Inicializa la lista filtrada también
     }
 
     fun agregarGasto(gasto: Gasto) {
         FakeRepository.addGasto(gasto)
         listaMaestra = FakeRepository.getAllGastos()
+        actualizarGlobales()
         aplicarFiltros()
     }
 
@@ -44,10 +54,21 @@ class MainViewModel : ViewModel() {
         val nuevaLista = listaMaestra.toMutableList()
         nuevaLista.removeAll { it.id in ids }
         listaMaestra = nuevaLista
+        actualizarGlobales()
         aplicarFiltros()
     }
 
-    // --- FUNCIONES DE FILTRADO ---
+    // Actualiza Dashboard y Totales
+    private fun actualizarGlobales() {
+        _gastosGlobales.value = listaMaestra
+
+        _totalMes.value = listaMaestra.sumOf { it.monto }
+        _totalPendiente.value = listaMaestra.filter {
+            it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
+        }.sumOf { it.monto }
+    }
+
+    // --- LOGICA DE FILTROS (Solo afecta a _gastosFiltrados) ---
 
     fun filtrarPorTexto(query: String) {
         busquedaActual = query
@@ -72,7 +93,6 @@ class MainViewModel : ViewModel() {
     private fun aplicarFiltros() {
         var resultado = listaMaestra
 
-        // 1. Texto
         if (busquedaActual.isNotEmpty()) {
             resultado = resultado.filter {
                 it.nombreComercio.contains(busquedaActual, ignoreCase = true) ||
@@ -80,31 +100,21 @@ class MainViewModel : ViewModel() {
             }
         }
 
-        // 2. Categoría
         if (categoriaActual != "Todas" && categoriaActual != "Categoría") {
             resultado = resultado.filter { it.categoria.equals(categoriaActual, ignoreCase = true) }
         }
 
-        // 3. Estado
         if (estadoActual != "Todos" && estadoActual != "Estado") {
             resultado = resultado.filter { it.estado.name.equals(estadoActual, ignoreCase = true) }
         }
 
-        // 4. Ordenación
         resultado = if (ordenMasReciente) {
             resultado.sortedByDescending { it.timestamp }
         } else {
             resultado.sortedBy { it.timestamp }
         }
 
-        _gastos.value = resultado
-        calcularTotales(listaMaestra)
-    }
-
-    private fun calcularTotales(lista: List<Gasto>) {
-        _totalMes.value = lista.sumOf { it.monto }
-        _totalPendiente.value = lista.filter {
-            it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
-        }.sumOf { it.monto }
+        // AQUÍ ESTÁ LA CLAVE: Solo actualizamos la lista filtrada
+        _gastosFiltrados.value = resultado
     }
 }
