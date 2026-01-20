@@ -1,120 +1,135 @@
 package com.example.vistas
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.vistas.data.FakeRepository
-import com.example.vistas.model.Gasto
+import com.example.vistas.data.FirestoreRepository
 import com.example.vistas.model.EstadoGasto
+import com.example.vistas.model.Gasto
+import com.google.firebase.auth.FirebaseAuth
 
 class MainViewModel : ViewModel() {
 
-    // 1. DATA GLOBAL (Para Dashboard - Siempre tiene todo)
+    private val repository = FirestoreRepository()
+    private val auth = FirebaseAuth.getInstance()
+
+    // LIVEDATA
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
-    // 2. DATA FILTRADA (Para Historial - Cambia con los filtros)
     private val _gastosFiltrados = MutableLiveData<List<Gasto>>()
     val gastosFiltrados: LiveData<List<Gasto>> = _gastosFiltrados
 
-    // Totales (Siempre calculados sobre el global)
     private val _totalMes = MutableLiveData<Double>()
     val totalMes: LiveData<Double> = _totalMes
-
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
-    // Copia maestra
+    // ESTADO INTERNO
     private var listaMaestra: List<Gasto> = emptyList()
+    var isAdmin = false // Público para que la UI sepa si mostrar botones de Admin
 
-    // Variables de filtro
+    // FILTROS
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
     private var ordenMasReciente = true
 
     init {
-        cargarDatos()
+        detectarRolYCargar()
     }
 
-    private fun cargarDatos() {
-        listaMaestra = FakeRepository.getAllGastos()
-        actualizarGlobales()
-        aplicarFiltros() // Inicializa la lista filtrada también
+    // --- ESTA ES LA FUNCIÓN QUE FALTABA ---
+    fun recargarSesion() {
+        Log.d("VIEWMODEL", "Recargando sesión tras Login...")
+        detectarRolYCargar()
     }
 
+    private fun detectarRolYCargar() {
+        val user = auth.currentUser
+        if (user != null) {
+            isAdmin = user.email?.lowercase()?.contains("admin") == true
+            Log.d("VIEWMODEL", "Usuario: ${user.email} | Es Admin: $isAdmin")
+            cargarDatos(user.uid)
+        } else {
+            Log.e("VIEWMODEL", "No hay usuario logueado. Esperando login...")
+        }
+    }
+
+    private fun cargarDatos(userId: String) {
+        val callback = { lista: List<Gasto> ->
+            listaMaestra = lista
+            actualizarUI()
+        }
+
+        if (isAdmin) {
+            repository.getAllGastos(callback)
+        } else {
+            repository.getMyGastos(userId, callback)
+        }
+    }
+
+    // --- ACCIONES ---
     fun agregarGasto(gasto: Gasto) {
-        FakeRepository.addGasto(gasto)
-        listaMaestra = FakeRepository.getAllGastos()
-        actualizarGlobales()
-        aplicarFiltros()
+        val user = auth.currentUser
+        if (user != null) {
+            val gastoReal = gasto.copy(
+                userId = user.uid,
+                emailUsuario = user.email ?: "Desconocido"
+            )
+            repository.addGasto(gastoReal,
+                onSuccess = { Log.d("VIEWMODEL", "Gasto añadido ok") },
+                onFailure = { Log.e("VIEWMODEL", "Error añadiendo") }
+            )
+        }
     }
 
     fun eliminarGastosSeleccionados(ids: List<String>) {
-        val nuevaLista = listaMaestra.toMutableList()
-        nuevaLista.removeAll { it.id in ids }
-        listaMaestra = nuevaLista
-        actualizarGlobales()
-        aplicarFiltros()
+        ids.forEach { repository.deleteGasto(it) }
     }
 
-    // Actualiza Dashboard y Totales
-    private fun actualizarGlobales() {
-        _gastosGlobales.value = listaMaestra
+    fun aprobarGasto(id: String) {
+        if (isAdmin) repository.updateEstado(id, EstadoGasto.APROBADO)
+    }
 
+    fun rechazarGasto(id: String) {
+        if (isAdmin) repository.updateEstado(id, EstadoGasto.RECHAZADO)
+    }
+
+    // --- UI Y FILTROS ---
+    private fun actualizarUI() {
+        _gastosGlobales.value = listaMaestra
         _totalMes.value = listaMaestra.sumOf { it.monto }
         _totalPendiente.value = listaMaestra.filter {
             it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
         }.sumOf { it.monto }
-    }
-
-    // --- LOGICA DE FILTROS (Solo afecta a _gastosFiltrados) ---
-
-    fun filtrarPorTexto(query: String) {
-        busquedaActual = query
         aplicarFiltros()
     }
 
-    fun filtrarPorCategoria(categoria: String) {
-        categoriaActual = categoria
-        aplicarFiltros()
-    }
-
-    fun filtrarPorEstado(estado: String) {
-        estadoActual = estado
-        aplicarFiltros()
-    }
-
-    fun ordenarPorFecha(masReciente: Boolean) {
-        ordenMasReciente = masReciente
-        aplicarFiltros()
-    }
+    fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
+    fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
+    fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
+    fun ordenarPorFecha(reciente: Boolean) { ordenMasReciente = reciente; aplicarFiltros() }
 
     private fun aplicarFiltros() {
-        var resultado = listaMaestra
+        var res = listaMaestra
 
         if (busquedaActual.isNotEmpty()) {
-            resultado = resultado.filter {
-                it.nombreComercio.contains(busquedaActual, ignoreCase = true) ||
-                        it.categoria.contains(busquedaActual, ignoreCase = true)
+            res = res.filter {
+                it.nombreComercio.contains(busquedaActual, true) ||
+                        it.emailUsuario.contains(busquedaActual, true)
             }
         }
-
         if (categoriaActual != "Todas" && categoriaActual != "Categoría") {
-            resultado = resultado.filter { it.categoria.equals(categoriaActual, ignoreCase = true) }
+            res = res.filter { it.categoria.equals(categoriaActual, true) }
         }
-
         if (estadoActual != "Todos" && estadoActual != "Estado") {
-            resultado = resultado.filter { it.estado.name.equals(estadoActual, ignoreCase = true) }
+            res = res.filter { it.estado.name.equals(estadoActual, true) }
         }
 
-        resultado = if (ordenMasReciente) {
-            resultado.sortedByDescending { it.timestamp }
-        } else {
-            resultado.sortedBy { it.timestamp }
-        }
+        res = if (ordenMasReciente) res.sortedByDescending { it.timestamp } else res.sortedBy { it.timestamp }
 
-        // AQUÍ ESTÁ LA CLAVE: Solo actualizamos la lista filtrada
-        _gastosFiltrados.value = resultado
+        _gastosFiltrados.value = res
     }
 }

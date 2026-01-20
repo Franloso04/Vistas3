@@ -13,6 +13,9 @@ import androidx.navigation.fragment.findNavController
 import com.example.vistas.model.EstadoGasto
 import com.example.vistas.model.Gasto
 import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class OcrFragment : Fragment(R.layout.screen_val_tick) {
 
@@ -23,37 +26,40 @@ class OcrFragment : Fragment(R.layout.screen_val_tick) {
 
         val editNombre = view.findViewById<EditText>(R.id.editNombre)
         val editMonto = view.findViewById<EditText>(R.id.editMonto)
-        val spinnerCategoria = view.findViewById<Spinner>(R.id.spinnerCategoria) // Asegúrate de tener este ID en el XML
-        val btnConfirmar = view.findViewById<Button>(R.id.btnConfirmar) // Ajusta el ID según tu XML (btnConfirmar o btnConfirmarGasto)
+        val spinner = view.findViewById<Spinner>(R.id.spinnerCategoria) // Asegúrate que el ID en XML sea este
+        val btnConfirmar = view.findViewById<Button>(R.id.btnConfirmar) // O btnConfirmarGasto
 
-        // 1. Rellenar el Spinner de Categorías
-        val categorias = listOf("Comida", "Transporte", "Alojamiento", "Suministros", "Equipamiento")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, categorias)
-        spinnerCategoria.adapter = adapter
+        // Configurar Spinner
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item,
+            listOf("Comida", "Transporte", "Alojamiento", "Suministros", "Equipamiento"))
+        spinner.adapter = adapter
 
-        // 2. Guardar Gasto
         btnConfirmar.setOnClickListener {
             val nombre = editNombre.text.toString()
-            // Limpiamos el símbolo $ si el usuario lo pone
-            val montoString = editMonto.text.toString().replace("$", "").trim()
-            val monto = montoString.toDoubleOrNull() ?: 0.0
-            val categoriaSeleccionada = spinnerCategoria.selectedItem.toString()
+            val montoStr = editMonto.text.toString().replace("$", "").trim()
+            val monto = montoStr.toDoubleOrNull() ?: 0.0
 
             if (nombre.isNotBlank() && monto > 0) {
+                // Crear fecha legible
+                val fechaHoy = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
+
                 val nuevoGasto = Gasto(
                     id = UUID.randomUUID().toString(),
                     nombreComercio = nombre,
-                    fecha = "Hoy", // Podrías usar DateFormat aquí
-                    categoria = categoriaSeleccionada, // ¡AQUÍ GUARDAMOS LA CATEGORÍA REAL!
+                    fecha = fechaHoy,
+                    categoria = spinner.selectedItem.toString(),
                     monto = monto,
-                    estado = EstadoGasto.PROCESANDO
+                    estado = EstadoGasto.PROCESANDO,
+                    timestamp = System.currentTimeMillis()
                 )
 
+                // Guardar
                 viewModel.agregarGasto(nuevoGasto)
-                Toast.makeText(context, "Ticket guardado", Toast.LENGTH_SHORT).show()
+
+                Toast.makeText(context, "Guardando en la nube...", Toast.LENGTH_SHORT).show()
                 findNavController().popBackStack()
             } else {
-                Toast.makeText(context, "Revisa el nombre y el monto", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Revisa los datos", Toast.LENGTH_SHORT).show()
             }
         }
     }

@@ -7,16 +7,29 @@
     android:padding="16dp">
 
     <TextView
-        android:text="Panel de Aprobación"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Solicitudes Pendientes"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="@color/text_main"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/txtEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cargando..."
+        android:gravity="center"
+        android:layout_marginTop="50dp"
+        android:textSize="16sp"
+        android:visibility="gone"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerAdmin"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="20dp"/>
+
 </LinearLayout>

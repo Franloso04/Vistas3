@@ -5,21 +5,54 @@ import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.auth.FirebaseAuth
 
 class LoginFragment : Fragment(R.layout.screen_log_empl) {
+
+    private val auth = FirebaseAuth.getInstance()
+    // Conectamos con el mismo ViewModel que usa el resto de la app
+    private val viewModel: MainViewModel by activityViewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Si ya estaba logueado de antes, avisamos al VM y entramos
+        if (auth.currentUser != null) {
+            viewModel.recargarSesion()
+            navegarAlDestino()
+            return
+        }
+
+        val editEmail = view.findViewById<TextInputEditText>(R.id.editEmail)
+        val editPass = view.findViewById<TextInputEditText>(R.id.editPassword)
         val btnLogin = view.findViewById<Button>(R.id.btnIniciarSesion)
 
         btnLogin.setOnClickListener {
-            // Simulación de Login: Por ahora no validamos, solo navegamos.
-            // Más adelante aquí conectaremos Firebase Auth.
-            findNavController().navigate(R.id.action_login_to_dashboard)
+            val email = editEmail.text.toString().trim()
+            val pass = editPass.text.toString().trim()
 
-            Toast.makeText(requireContext(), "Bienvenido", Toast.LENGTH_SHORT).show()
+            if (email.isNotEmpty() && pass.isNotEmpty()) {
+                auth.signInWithEmailAndPassword(email, pass)
+                    .addOnSuccessListener {
+                        // ¡IMPORTANTE! Aquí despertamos al ViewModel
+                        viewModel.recargarSesion()
+                        navegarAlDestino()
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                    }
+            } else {
+                Toast.makeText(context, "Rellena los campos", Toast.LENGTH_SHORT).show()
+            }
         }
+    }
+
+    private fun navegarAlDestino() {
+        // Navega siempre al dashboard, el ViewModel ya sabe si eres admin o no
+        // y cargará los datos correspondientes.
+        findNavController().navigate(R.id.action_login_to_dashboard)
     }
 }
