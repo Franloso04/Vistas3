@@ -1,22 +1,30 @@
 package com.example.vistas
+
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.vistas.R
 import com.example.vistas.model.EstadoGasto
 import com.example.vistas.model.Gasto
 
 class GastoAdapter(
     private var lista: List<Gasto>,
-    private var isSelectionMode: Boolean = false,
+    isSelectionMode: Boolean = false,
     private val onAction: () -> Unit
 ) : RecyclerView.Adapter<GastoAdapter.GastoVH>() {
+
+    var isSelectionMode: Boolean = isSelectionMode
+        set(value) {
+            field = value
+            if (!value) {
+                lista.forEach { it.isSelected = false }
+            }
+            notifyDataSetChanged()
+        }
 
     class GastoVH(view: View) : RecyclerView.ViewHolder(view) {
         val comercio: TextView = view.findViewById(R.id.txtComercio)
@@ -26,7 +34,6 @@ class GastoAdapter(
         val container: LinearLayout = view.findViewById(R.id.layoutStatus)
         val dot: View = view.findViewById(R.id.dotStatus)
         val check: CheckBox = view.findViewById(R.id.checkDelete)
-        val icono: ImageView = view.findViewById(R.id.imgIconCategory)
     }
 
     override fun onCreateViewHolder(p: ViewGroup, t: Int): GastoVH {
@@ -37,54 +44,51 @@ class GastoAdapter(
     override fun onBindViewHolder(holder: GastoVH, position: Int) {
         val gasto = lista[position]
 
-        // Datos básicos
         holder.comercio.text = gasto.nombreComercio
         holder.info.text = "${gasto.fecha} • ${gasto.categoria}"
         holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
-        // Aplicar lógica de estados (Refactorizada)
         configurarEstado(holder, gasto)
 
         // Lógica de selección
         holder.check.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
+        holder.check.setOnCheckedChangeListener(null)
         holder.check.isChecked = gasto.isSelected
 
-        holder.itemView.setOnClickListener {
+        val clickListener = View.OnClickListener {
             if (isSelectionMode) {
                 gasto.isSelected = !gasto.isSelected
-                notifyItemChanged(position)
+                holder.check.isChecked = gasto.isSelected
                 onAction()
             }
         }
+
+        holder.itemView.setOnClickListener(clickListener)
+        holder.check.setOnClickListener(clickListener)
     }
 
     override fun getItemCount() = lista.size
 
-    fun setSelectionMode(enabled: Boolean) {
-        isSelectionMode = enabled
-        notifyDataSetChanged()
-    }
+    // --- FUNCIONES NECESARIAS ---
 
     fun updateData(nuevaLista: List<Gasto>) {
         this.lista = nuevaLista
         notifyDataSetChanged()
     }
 
-    // Dentro de GastoAdapter.kt, reemplaza la función configurarEstado por esta:
+    fun getSelectedCount(): Int {
+        return lista.count { it.isSelected }
+    }
 
-    // 1. Crea esta clase auxiliar al final del archivo (fuera de la clase GastoAdapter)
-    private data class StatusConfig(
-        val bgColor: Int,
-        val textColor: Int,
-        val dotRes: Int,
-        val label: String
-    )
+    fun getSelectedIds(): List<String> {
+        return lista.filter { it.isSelected }.map { it.id }
+    }
 
-    // 2. Modifica la función dentro del Adapter
+    // --- LÓGICA DE DISEÑO (PILL) ---
+    private data class StatusConfig(val bgColor: Int, val textColor: Int, val dotRes: Int, val label: String)
+
     private fun configurarEstado(holder: GastoVH, gasto: Gasto) {
         val context = holder.itemView.context
-
-        // Solución al error de Triple: usamos nuestra propia clase StatusConfig
         val config = when (gasto.estado) {
             EstadoGasto.APROBADO -> StatusConfig(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
             EstadoGasto.PENDIENTE -> StatusConfig(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, "PENDIENTE")
@@ -93,20 +97,20 @@ class GastoAdapter(
         }
 
         holder.container.apply {
-            setBackgroundResource(R.drawable.bg_status_pill) // Asegúrate de tener este XML
-            backgroundTintList = androidx.core.content.ContextCompat.getColorStateList(context, config.bgColor)
+            setBackgroundResource(R.drawable.bg_status_pill)
+            backgroundTintList = ContextCompat.getColorStateList(context, config.bgColor)
         }
 
         holder.status.apply {
             text = config.label
-            setTextColor(androidx.core.content.ContextCompat.getColor(context, config.textColor))
+            setTextColor(ContextCompat.getColor(context, config.textColor))
         }
 
         if (config.dotRes != 0) {
-            holder.dot.visibility = android.view.View.VISIBLE
+            holder.dot.visibility = View.VISIBLE
             holder.dot.setBackgroundResource(config.dotRes)
         } else {
-            holder.dot.visibility = android.view.View.GONE
+            holder.dot.visibility = View.GONE
         }
     }
 }

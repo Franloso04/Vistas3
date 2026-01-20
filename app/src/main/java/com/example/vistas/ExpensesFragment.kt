@@ -13,7 +13,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-// Asegúrate de importar tu Adaptador si está en otro paquete, ej: com.example.vistas.adapter.GastoAdapter
 
 class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
 
@@ -23,7 +22,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Referencias a las vistas (Coinciden con el XML de arriba)
+        // Referencias a las vistas
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerHistorial)
         val btnEscanear = view.findViewById<View>(R.id.btnEscanear)
         val searchBar = view.findViewById<EditText>(R.id.searchBar)
@@ -32,12 +31,12 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
 
         // Configurar Adapter
         adapter = GastoAdapter(emptyList(), isSelectionMode = false) {
-            // Callback: Se ejecuta cada vez que tocas un checkbox
-            val count = adapter.getSelectedCount() // Esta función ya existe en GastoAdapter
+            // Callback: Se ejecuta al tocar un checkbox
+            val count = adapter.getSelectedCount()
             if (count > 0) {
                 btnEliminar.visibility = View.VISIBLE
                 btnEliminar.text = "Eliminar seleccionados ($count)"
-                btnEscanear.visibility = View.GONE // Ocultamos escanear para no tapar
+                btnEscanear.visibility = View.GONE
             } else {
                 btnEliminar.visibility = View.GONE
                 btnEscanear.visibility = View.VISIBLE
@@ -47,7 +46,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
         recycler.layoutManager = LinearLayoutManager(context)
         recycler.adapter = adapter
 
-        // Observar datos del ViewModel (Fuente de verdad)
+        // Observar datos del ViewModel
         viewModel.gastos.observe(viewLifecycleOwner) { lista ->
             adapter.updateData(lista)
         }
@@ -70,9 +69,8 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
 
         // Botón Seleccionar / Cancelar
         txtSeleccionar.setOnClickListener {
-            // Accedemos a la propiedad pública isSelectionMode
             val nuevoModo = !adapter.isSelectionMode
-            adapter.setSelectionMode(nuevoModo)
+            adapter.isSelectionMode = nuevoModo // Usamos la propiedad directamente
 
             txtSeleccionar.text = if (nuevoModo) "Cancelar" else "Seleccionar"
 
@@ -88,11 +86,10 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
                 .setTitle("¿Eliminar gastos?")
                 .setMessage("Esta acción no se puede deshacer.")
                 .setPositiveButton("Eliminar") { _, _ ->
-                    val ids = adapter.getSelectedIds() // Esta función ya existe en GastoAdapter
+                    val ids = adapter.getSelectedIds()
                     viewModel.eliminarGastosSeleccionados(ids)
 
-                    // Salir modo selección
-                    adapter.setSelectionMode(false)
+                    adapter.isSelectionMode = false // Usamos la propiedad directamente
                     txtSeleccionar.text = "Seleccionar"
                     btnEliminar.visibility = View.GONE
                     btnEscanear.visibility = View.VISIBLE

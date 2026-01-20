@@ -10,7 +10,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -18,7 +17,6 @@
             android:text="Historial de Gastos"
             android:textSize="18sp"
             android:textStyle="bold" />
-
         <TextView
             android:id="@+id/btnSeleccionar"
             android:layout_width="wrap_content"
@@ -39,7 +37,7 @@
         android:background="@drawable/bg_icon_placeholder"
         android:drawableStart="@android:drawable/ic_menu_search"
         android:drawablePadding="12dp"
-        android:hint="Buscar comercio o concepto"
+        android:hint="Buscar comercio..."
         android:padding="12dp" />
 
     <androidx.recyclerview.widget.RecyclerView
