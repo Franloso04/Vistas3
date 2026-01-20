@@ -5,43 +5,73 @@
     android:layout_height="match_parent"
     android:background="@color/bg_app">
 
-    <TextView
-        android:id="@+id/titleHistorial"
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:id="@+id/headerLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
-        android:text="Historial de Gastos"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/btnSeleccionar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:text="Seleccionar"
-        android:textColor="@color/primary_blue" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:text="Historial de Gastos"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnSeleccionar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="Seleccionar"
+            android:textColor="@color/primary_blue"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+    <EditText
+        android:id="@+id/searchBar"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_below="@id/headerLayout"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_icon_placeholder"
+        android:drawableStart="@android:drawable/ic_menu_search"
+        android:drawablePadding="12dp"
+        android:hint="Buscar comercio o concepto"
+        android:padding="12dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerHistorial"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/titleHistorial"
-        android:layout_marginTop="16dp" />
+        android:layout_below="@id/searchBar"
+        android:clipToPadding="false"
+        android:paddingBottom="80dp" />
 
-    <com.google.android.material.button.MaterialButton
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/btnEscanear"
         android:layout_width="wrap_content"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="24dp"
-        android:paddingHorizontal="32dp"
         android:text="Escanear Ticket"
-        app:cornerRadius="30dp"
-        app:icon="@android:drawable/ic_menu_camera" />
+        android:backgroundTint="@color/primary_blue"
+        android:textColor="@color/white"
+        app:icon="@android:drawable/ic_menu_camera"
+        app:iconTint="@color/white" />
+
+    <Button
+        android:id="@+id/btnEliminarVarios"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="16dp"
+        android:backgroundTint="#B91C1C"
+        android:text="Eliminar seleccionados"
+        android:textColor="@color/white"
+        android:visibility="gone" />
 
 </RelativeLayout>
