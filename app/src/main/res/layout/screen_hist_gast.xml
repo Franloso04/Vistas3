@@ -16,7 +16,8 @@
             android:layout_centerHorizontal="true"
             android:text="Historial de Gastos"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:textColor="@color/text_main"/>
         <TextView
             android:id="@+id/btnSeleccionar"
             android:layout_width="wrap_content"
@@ -33,18 +34,61 @@
         android:layout_height="50dp"
         android:layout_below="@id/headerLayout"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="8dp"
         android:background="@drawable/bg_icon_placeholder"
         android:drawableStart="@android:drawable/ic_menu_search"
         android:drawablePadding="12dp"
-        android:hint="Buscar comercio..."
-        android:padding="12dp" />
+        android:hint="Buscar comercio o concepto"
+        android:padding="12dp"
+        android:textColor="@color/text_main" />
+
+    <HorizontalScrollView
+        android:id="@+id/scrollFilters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/searchBar"
+        android:scrollbars="none"
+        android:paddingVertical="8dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFechas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fechas"
+                app:chipIcon="@android:drawable/ic_menu_my_calendar"
+                style="@style/Widget.MaterialComponents.Chip.Action"
+                android:layout_marginEnd="8dp"/>
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipCategoria"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Categoría"
+                app:chipIcon="@android:drawable/ic_menu_sort_by_size"
+                style="@style/Widget.MaterialComponents.Chip.Action"
+                android:layout_marginEnd="8dp"/>
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipEstado"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Estado"
+                app:chipIcon="@android:drawable/ic_menu_info_details"
+                style="@style/Widget.MaterialComponents.Chip.Action"/>
+        </LinearLayout>
+    </HorizontalScrollView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerHistorial"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/searchBar"
+        android:layout_below="@id/scrollFilters"
         android:clipToPadding="false"
         android:paddingBottom="80dp" />
 

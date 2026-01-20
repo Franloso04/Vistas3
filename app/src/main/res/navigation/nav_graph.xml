@@ -35,6 +35,6 @@
 
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.example.vistas.DashboardFragment" />
+        android:name="com.example.vistas.SettingsFragment" />
 
 </navigation>

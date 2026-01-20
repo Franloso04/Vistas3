@@ -7,12 +7,15 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.PopupMenu
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
 
 class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
 
@@ -22,16 +25,16 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Referencias a las vistas
+        // Vinculación de Vistas
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerHistorial)
         val btnEscanear = view.findViewById<View>(R.id.btnEscanear)
         val searchBar = view.findViewById<EditText>(R.id.searchBar)
         val txtSeleccionar = view.findViewById<TextView>(R.id.btnSeleccionar)
         val btnEliminar = view.findViewById<Button>(R.id.btnEliminarVarios)
+        val chipCategoria = view.findViewById<Chip>(R.id.chipCategoria)
 
-        // Configurar Adapter
+        // Configuración del RecyclerView
         adapter = GastoAdapter(emptyList(), isSelectionMode = false) {
-            // Callback: Se ejecuta al tocar un checkbox
             val count = adapter.getSelectedCount()
             if (count > 0) {
                 btnEliminar.visibility = View.VISIBLE
@@ -51,27 +54,43 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             adapter.updateData(lista)
         }
 
-        // Navegación
-        btnEscanear.setOnClickListener {
-            findNavController().navigate(R.id.ocrFragment)
-        }
-
-        // Buscador
+        // Buscador de Texto
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                val texto = s.toString()
-                val listaFiltrada = viewModel.filtrarGastos(texto)
-                adapter.updateData(listaFiltrada)
+                viewModel.filtrarPorTexto(s.toString())
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
-        // Botón Seleccionar / Cancelar
+        // --- FILTRO DE CATEGORÍA (Menú Desplegable) ---
+        chipCategoria.setOnClickListener {
+            val popup = PopupMenu(requireContext(), chipCategoria)
+            popup.menu.add("Todas")
+            popup.menu.add("Comida")
+            popup.menu.add("Transporte")
+            popup.menu.add("Alojamiento")
+            popup.menu.add("Suministros")
+            popup.menu.add("Equipamiento")
+
+            popup.setOnMenuItemClickListener { item ->
+                val cat = item.title.toString()
+                chipCategoria.text = if (cat == "Todas") "Categoría" else cat
+                viewModel.filtrarPorCategoria(cat) // Llamada al ViewModel
+                true
+            }
+            popup.show()
+        }
+
+        // Navegación OCR
+        btnEscanear.setOnClickListener {
+            findNavController().navigate(R.id.ocrFragment)
+        }
+
+        // Botón Seleccionar
         txtSeleccionar.setOnClickListener {
             val nuevoModo = !adapter.isSelectionMode
-            adapter.isSelectionMode = nuevoModo // Usamos la propiedad directamente
-
+            adapter.activarModoSeleccion(nuevoModo)
             txtSeleccionar.text = if (nuevoModo) "Cancelar" else "Seleccionar"
 
             if (!nuevoModo) {
@@ -80,7 +99,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             }
         }
 
-        // Acción de Eliminar
+        // Botón Eliminar
         btnEliminar.setOnClickListener {
             AlertDialog.Builder(requireContext())
                 .setTitle("¿Eliminar gastos?")
@@ -88,8 +107,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
                 .setPositiveButton("Eliminar") { _, _ ->
                     val ids = adapter.getSelectedIds()
                     viewModel.eliminarGastosSeleccionados(ids)
-
-                    adapter.isSelectionMode = false // Usamos la propiedad directamente
+                    adapter.activarModoSeleccion(false)
                     txtSeleccionar.text = "Seleccionar"
                     btnEliminar.visibility = View.GONE
                     btnEscanear.visibility = View.VISIBLE

@@ -5,57 +5,86 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.vistas.data.FakeRepository
 import com.example.vistas.model.Gasto
-import java.util.Locale
+import com.example.vistas.model.EstadoGasto
 
 class MainViewModel : ViewModel() {
 
-    // Lista maestra de gastos (Fuente de verdad)
     private val _gastos = MutableLiveData<List<Gasto>>()
     val gastos: LiveData<List<Gasto>> = _gastos
 
-    // Estadísticas para el Dashboard
     private val _totalMes = MutableLiveData<Double>()
     val totalMes: LiveData<Double> = _totalMes
 
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
+    // Variables para guardar el estado de los filtros
+    private var listaOriginal: List<Gasto> = emptyList()
+    private var filtroTexto: String = ""
+    private var filtroCategoria: String? = null // Null significa "Todas"
+
     init {
-        // Cargar datos iniciales
-        _gastos.value = FakeRepository.getAllGastos()
-        recalcularTotales()
+        cargarDatos()
+    }
+
+    private fun cargarDatos() {
+        // Carga inicial
+        listaOriginal = FakeRepository.getAllGastos()
+        aplicarFiltros()
     }
 
     fun agregarGasto(gasto: Gasto) {
-        val listaActual = _gastos.value.orEmpty().toMutableList()
-        listaActual.add(0, gasto) // Añadir al principio
-        _gastos.value = listaActual
-        recalcularTotales()
+        FakeRepository.addGasto(gasto)
+        listaOriginal = FakeRepository.getAllGastos()
+        aplicarFiltros() // Re-aplicar filtros al añadir
     }
 
     fun eliminarGastosSeleccionados(ids: List<String>) {
-        val listaActual = _gastos.value.orEmpty().toMutableList()
-        listaActual.removeAll { it.id in ids }
-        _gastos.value = listaActual
-        recalcularTotales()
+        val nuevaLista = listaOriginal.toMutableList()
+        nuevaLista.removeAll { it.id in ids }
+        listaOriginal = nuevaLista
+        aplicarFiltros()
     }
 
-    private fun recalcularTotales() {
-        val lista = _gastos.value.orEmpty()
-        _totalMes.value = lista.sumOf { it.monto }
-        // Asumiendo que "PENDIENTE" y "PROCESANDO" cuentan como pendiente
-        _totalPendiente.value = lista.filter {
-            it.estado.name == "PENDIENTE" || it.estado.name == "PROCESANDO"
-        }.sumOf { it.monto }
+    // --- LÓGICA DE FILTRADO ---
+
+    fun setFiltroTexto(texto: String) {
+        filtroTexto = texto
+        aplicarFiltros()
     }
 
-    // Lógica del buscador
-    fun filtrarGastos(query: String): List<Gasto> {
-        val lista = _gastos.value.orEmpty()
-        if (query.isEmpty()) return lista
-        return lista.filter {
-            it.nombreComercio.lowercase(Locale.ROOT).contains(query.lowercase(Locale.ROOT)) ||
-                    it.categoria.lowercase(Locale.ROOT).contains(query.lowercase(Locale.ROOT))
+    fun setFiltroCategoria(categoria: String?) {
+        filtroCategoria = categoria
+        aplicarFiltros()
+    }
+
+    private fun aplicarFiltros() {
+        var listaFiltrada = listaOriginal
+
+        // 1. Filtro por Texto (Buscador)
+        if (filtroTexto.isNotEmpty()) {
+            listaFiltrada = listaFiltrada.filter {
+                it.nombreComercio.contains(filtroTexto, ignoreCase = true) ||
+                        it.categoria.contains(filtroTexto, ignoreCase = true)
+            }
         }
+
+        // 2. Filtro por Categoría (Chip)
+        if (filtroCategoria != null && filtroCategoria != "Todas") {
+            listaFiltrada = listaFiltrada.filter {
+                it.categoria.equals(filtroCategoria, ignoreCase = true)
+            }
+        }
+
+        // Actualizamos la UI
+        _gastos.value = listaFiltrada
+        calcularTotales(listaFiltrada)
+    }
+
+    private fun calcularTotales(lista: List<Gasto>) {
+        _totalMes.value = lista.sumOf { it.monto }
+        _totalPendiente.value = lista.filter {
+            it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
+        }.sumOf { it.monto }
     }
 }

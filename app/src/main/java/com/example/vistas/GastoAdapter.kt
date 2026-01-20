@@ -13,20 +13,11 @@ import com.example.vistas.model.Gasto
 
 class GastoAdapter(
     private var lista: List<Gasto>,
-    isSelectionMode: Boolean = false,
+    var isSelectionMode: Boolean = false, // Propiedad pública
     private val onAction: () -> Unit
-) : RecyclerView.Adapter<GastoAdapter.GastoVH>() {
+) : RecyclerView.Adapter<GastoAdapter.GastoViewHolder>() {
 
-    var isSelectionMode: Boolean = isSelectionMode
-        set(value) {
-            field = value
-            if (!value) {
-                lista.forEach { it.isSelected = false }
-            }
-            notifyDataSetChanged()
-        }
-
-    class GastoVH(view: View) : RecyclerView.ViewHolder(view) {
+    class GastoViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val comercio: TextView = view.findViewById(R.id.txtComercio)
         val info: TextView = view.findViewById(R.id.txtInfo)
         val monto: TextView = view.findViewById(R.id.txtMonto)
@@ -36,12 +27,12 @@ class GastoAdapter(
         val check: CheckBox = view.findViewById(R.id.checkDelete)
     }
 
-    override fun onCreateViewHolder(p: ViewGroup, t: Int): GastoVH {
-        val view = LayoutInflater.from(p.context).inflate(R.layout.item_gasto, p, false)
-        return GastoVH(view)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GastoViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_gasto, parent, false)
+        return GastoViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: GastoVH, position: Int) {
+    override fun onBindViewHolder(holder: GastoViewHolder, position: Int) {
         val gasto = lista[position]
 
         holder.comercio.text = gasto.nombreComercio
@@ -50,44 +41,51 @@ class GastoAdapter(
 
         configurarEstado(holder, gasto)
 
-        // Lógica de selección
+        // Lógica de visualización del Checkbox
         holder.check.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
-        holder.check.setOnCheckedChangeListener(null)
+        holder.check.setOnCheckedChangeListener(null) // Evitar bugs al hacer scroll
         holder.check.isChecked = gasto.isSelected
 
-        val clickListener = View.OnClickListener {
+        // Click listener unificado
+        val listener = View.OnClickListener {
             if (isSelectionMode) {
                 gasto.isSelected = !gasto.isSelected
                 holder.check.isChecked = gasto.isSelected
-                onAction()
+                onAction() // Notificar cambios
             }
         }
 
-        holder.itemView.setOnClickListener(clickListener)
-        holder.check.setOnClickListener(clickListener)
+        holder.itemView.setOnClickListener(listener)
+        holder.check.setOnClickListener(listener)
     }
 
-    override fun getItemCount() = lista.size
+    override fun getItemCount(): Int = lista.size
 
-    // --- FUNCIONES NECESARIAS ---
+    // --- MÉTODOS DE AYUDA ---
 
     fun updateData(nuevaLista: List<Gasto>) {
         this.lista = nuevaLista
         notifyDataSetChanged()
     }
 
-    fun getSelectedCount(): Int {
-        return lista.count { it.isSelected }
+    // RENOMBRADO PARA EVITAR EL ERROR "PLATFORM DECLARATION CLASH"
+    fun activarModoSeleccion(activar: Boolean) {
+        this.isSelectionMode = activar
+        if (!activar) {
+            // Si desactivamos, limpiamos las selecciones
+            lista.forEach { it.isSelected = false }
+        }
+        notifyDataSetChanged()
     }
 
-    fun getSelectedIds(): List<String> {
-        return lista.filter { it.isSelected }.map { it.id }
-    }
+    fun getSelectedCount(): Int = lista.count { it.isSelected }
 
-    // --- LÓGICA DE DISEÑO (PILL) ---
+    fun getSelectedIds(): List<String> = lista.filter { it.isSelected }.map { it.id }
+
+    // --- DISEÑO DE ESTADOS ---
     private data class StatusConfig(val bgColor: Int, val textColor: Int, val dotRes: Int, val label: String)
 
-    private fun configurarEstado(holder: GastoVH, gasto: Gasto) {
+    private fun configurarEstado(holder: GastoViewHolder, gasto: Gasto) {
         val context = holder.itemView.context
         val config = when (gasto.estado) {
             EstadoGasto.APROBADO -> StatusConfig(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
