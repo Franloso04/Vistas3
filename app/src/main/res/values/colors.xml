@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="primary_blue">#2563EB</color>
-    <color name="bg_app">#F8FAFC</color> <color name="white">#FFFFFF</color>   <color name="surface_card">#FFFFFF</color> <color name="text_main">#1E293B</color>
+    <color name="bg_app">#F8FAFC</color>
+    <color name="white">#FFFFFF</color>
+    <color name="surface_card">#FFFFFF</color> <color name="text_main">#1E293B</color>
     <color name="text_secondary">#64748B</color>
 
     <color name="status_approved_bg">#DCFCE7</color>

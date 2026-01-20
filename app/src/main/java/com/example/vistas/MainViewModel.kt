@@ -18,13 +18,12 @@ class MainViewModel : ViewModel() {
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
+    // Variables de control de filtros
     private var listaMaestra: List<Gasto> = emptyList()
-
-    // Estado de filtros
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
-    private var estadoActual = "Todos" // NUEVO
-    private var ordenFechaAscendente = false // False = Más nuevo primero (Defecto)
+    private var estadoActual = "Todos"
+    private var ordenMasReciente = true // true = nuevos primero
 
     init {
         cargarDatos()
@@ -48,7 +47,7 @@ class MainViewModel : ViewModel() {
         aplicarFiltros()
     }
 
-    // --- NUEVAS FUNCIONES DE FILTRO ---
+    // --- FUNCIONES DE FILTRADO ---
 
     fun filtrarPorTexto(query: String) {
         busquedaActual = query
@@ -65,8 +64,8 @@ class MainViewModel : ViewModel() {
         aplicarFiltros()
     }
 
-    fun cambiarOrdenFecha(masAntiguoPrimero: Boolean) {
-        ordenFechaAscendente = masAntiguoPrimero
+    fun ordenarPorFecha(masReciente: Boolean) {
+        ordenMasReciente = masReciente
         aplicarFiltros()
     }
 
@@ -86,20 +85,20 @@ class MainViewModel : ViewModel() {
             resultado = resultado.filter { it.categoria.equals(categoriaActual, ignoreCase = true) }
         }
 
-        // 3. Estado (NUEVO)
+        // 3. Estado
         if (estadoActual != "Todos" && estadoActual != "Estado") {
             resultado = resultado.filter { it.estado.name.equals(estadoActual, ignoreCase = true) }
         }
 
-        // 4. Ordenar (NUEVO)
-        resultado = if (ordenFechaAscendente) {
-            resultado.sortedBy { it.timestamp } // Más antiguo primero (ascendente)
+        // 4. Ordenación
+        resultado = if (ordenMasReciente) {
+            resultado.sortedByDescending { it.timestamp }
         } else {
-            resultado.sortedByDescending { it.timestamp } // Más nuevo primero
+            resultado.sortedBy { it.timestamp }
         }
 
         _gastos.value = resultado
-        calcularTotales(listaMaestra) // Totales siempre sobre el global
+        calcularTotales(listaMaestra)
     }
 
     private fun calcularTotales(lista: List<Gasto>) {
