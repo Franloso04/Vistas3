@@ -3,39 +3,25 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/loginFragment">
-
-    <fragment
-        android:id="@+id/loginFragment"
-        android:name="com.example.myapplication.ui.LoginFragment"
-        tools:layout="@layout/screen_log_empl">
-        <action
-            android:id="@+id/action_login_to_dashboard"
-            app:destination="@id/dashboardFragment"
-            app:popUpTo="@id/loginFragment"
-            app:popUpToInclusive="true" />
-    </fragment>
+    app:startDestination="@id/dashboardFragment">
 
     <fragment
         android:id="@+id/dashboardFragment"
-        android:name="com.example.myapplication.ui.DashboardFragment"
+        android:name="com.example.vistas.DashboardFragment"
         tools:layout="@layout/screen_dash_gast" />
 
     <fragment
         android:id="@+id/expensesFragment"
-        android:name="com.example.myapplication.ui.ExpensesFragment"
-        tools:layout="@layout/screen_hist_gast">
-        <action
-            android:id="@+id/action_history_to_ocr"
-            app:destination="@id/ocrFragment" />
-    </fragment>
+        android:name="com.example.vistas.DashboardFragment"
+        tools:layout="@layout/screen_hist_gast" />
+    
 
     <fragment
-        android:id="@+id/ocrFragment"
-        android:name="com.example.myapplication.ui.OCRFragment"
-        tools:layout="@layout/screen_val_tick" />
+        android:id="@+id/reportsFragment"
+        android:name="com.example.vistas.DashboardFragment" />
 
-    <fragment android:id="@+id/reportsFragment" android:name="com.example.myapplication.ui.PlaceholderFragment" />
-    <fragment android:id="@+id/settingsFragment" android:name="com.example.myapplication.ui.PlaceholderFragment" />
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.vistas.DashboardFragment" />
 
 </navigation>

@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
         // Lógica para ocultar el menú en pantallas donde no debe verse (según tus imágenes)
         navController.addOnDestinationChangedListener { _, destination, _ ->
             when (destination.id) {
-                R.id.loginFragment, R.id.ocrFragment -> bottomNav.visibility = View.GONE
+                //R.id.loginFragment, R.id.ocrFragment -> bottomNav.visibility = View.GONE
                 else -> bottomNav.visibility = View.VISIBLE
             }
         }
