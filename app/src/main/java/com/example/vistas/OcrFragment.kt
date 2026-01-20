@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.vistas.data.FakeRepository
@@ -17,23 +18,30 @@ class OcrFragment : Fragment(R.layout.screen_val_tick) {
         super.onViewCreated(view, savedInstanceState)
 
         val editNombre = view.findViewById<EditText>(R.id.editNombre)
-        val editMonto = view.findViewById<EditText>(R.id.editMonto)
         val btnConfirmar = view.findViewById<Button>(R.id.btnConfirmar)
 
         btnConfirmar.setOnClickListener {
-            val nuevoGasto = Gasto(
-                id = UUID.randomUUID().toString(),
-                nombreComercio = editNombre.text.toString(),
-                fecha = "Hoy, 10:00 AM",
-                categoria = "Comidas y Entretenimiento",
-                monto = 15.50, // En producción parsear editMonto
-                estado = EstadoGasto.PROCESANDO
-            )
+            val nombre = editNombre.text.toString()
 
-            FakeRepository.addGasto(nuevoGasto)
+            if (nombre.isNotEmpty()) {
+                // Creamos el objeto real
+                val nuevoGasto = Gasto(
+                    id = UUID.randomUUID().toString(),
+                    nombreComercio = nombre,
+                    fecha = "Hoy, 12:00 PM",
+                    categoria = "Comida",
+                    monto = 15.50,
+                    estado = EstadoGasto.PROCESANDO
+                )
 
-            // Regresamos al historial
-            findNavController().popBackStack()
+                // Lo guardamos en el repositorio
+                FakeRepository.addGasto(nuevoGasto)
+
+                Toast.makeText(requireContext(), "Ticket guardado", Toast.LENGTH_SHORT).show()
+
+                // Volvemos al historial de gastos
+                findNavController().popBackStack()
+            }
         }
     }
 }

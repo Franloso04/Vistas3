@@ -70,25 +70,43 @@ class GastoAdapter(
         notifyDataSetChanged()
     }
 
+    // Dentro de GastoAdapter.kt, reemplaza la función configurarEstado por esta:
+
+    // 1. Crea esta clase auxiliar al final del archivo (fuera de la clase GastoAdapter)
+    private data class StatusConfig(
+        val bgColor: Int,
+        val textColor: Int,
+        val dotRes: Int,
+        val label: String
+    )
+
+    // 2. Modifica la función dentro del Adapter
     private fun configurarEstado(holder: GastoVH, gasto: Gasto) {
         val context = holder.itemView.context
-        holder.dot.visibility = View.VISIBLE
 
-        val (bgColor, textColor, dotRes, text) = when (gasto.estado) {
-            EstadoGasto.APROBADO -> Triple(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
-            EstadoGasto.PENDIENTE -> Triple(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, "PENDIENTE")
-            EstadoGasto.RECHAZADO -> Triple(R.color.status_rejected_bg, R.color.status_rejected_text, R.drawable.dot_red, "RECHAZADO")
-            EstadoGasto.PROCESANDO -> Triple(R.color.status_pending_bg, R.color.status_pending_text, 0, "Procesando")
+        // Solución al error de Triple: usamos nuestra propia clase StatusConfig
+        val config = when (gasto.estado) {
+            EstadoGasto.APROBADO -> StatusConfig(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
+            EstadoGasto.PENDIENTE -> StatusConfig(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, "PENDIENTE")
+            EstadoGasto.RECHAZADO -> StatusConfig(R.color.status_rejected_bg, R.color.status_rejected_text, R.drawable.dot_red, "RECHAZADO")
+            EstadoGasto.PROCESANDO -> StatusConfig(R.color.status_pending_bg, R.color.status_pending_text, 0, "Procesando")
         }
 
         holder.container.apply {
-            setBackgroundResource(R.drawable.bg_status_pill)
-            backgroundTintList = ContextCompat.getColorStateList(context, bgColor)
+            setBackgroundResource(R.drawable.bg_status_pill) // Asegúrate de tener este XML
+            backgroundTintList = androidx.core.content.ContextCompat.getColorStateList(context, config.bgColor)
         }
+
         holder.status.apply {
-            this.text = text
-            setTextColor(ContextCompat.getColor(context, textColor))
+            text = config.label
+            setTextColor(androidx.core.content.ContextCompat.getColor(context, config.textColor))
         }
-        if (dotRes != 0) holder.dot.setBackgroundResource(dotRes) else holder.dot.visibility = View.GONE
+
+        if (config.dotRes != 0) {
+            holder.dot.visibility = android.view.View.VISIBLE
+            holder.dot.setBackgroundResource(config.dotRes)
+        } else {
+            holder.dot.visibility = android.view.View.GONE
+        }
     }
 }
