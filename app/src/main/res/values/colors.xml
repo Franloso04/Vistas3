@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="primary_blue">#2563EB</color>
-    <color name="bg_app">#F8FAFC</color>
-    <color name="white">#FFFFFF</color>
-    <color name="text_main">#1E293B</color>
+    <color name="bg_app">#F8FAFC</color> <color name="white">#FFFFFF</color>   <color name="surface_card">#FFFFFF</color> <color name="text_main">#1E293B</color>
     <color name="text_secondary">#64748B</color>
 
     <color name="status_approved_bg">#DCFCE7</color>
@@ -12,7 +10,4 @@
     <color name="status_pending_text">#92400E</color>
     <color name="status_rejected_bg">#FEE2E2</color>
     <color name="status_rejected_text">#991B1B</color>
-    <color name="status_warning_bg">#FFFBEB</color>
-    <color name="status_warning_icon">#D97706</color>
-
 </resources>

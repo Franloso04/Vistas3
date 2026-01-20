@@ -18,67 +18,88 @@ class MainViewModel : ViewModel() {
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
-    // Variables para guardar el estado de los filtros
-    private var listaOriginal: List<Gasto> = emptyList()
-    private var filtroTexto: String = ""
-    private var filtroCategoria: String? = null // Null significa "Todas"
+    private var listaMaestra: List<Gasto> = emptyList()
+
+    // Estado de filtros
+    private var busquedaActual = ""
+    private var categoriaActual = "Todas"
+    private var estadoActual = "Todos" // NUEVO
+    private var ordenFechaAscendente = false // False = Más nuevo primero (Defecto)
 
     init {
         cargarDatos()
     }
 
     private fun cargarDatos() {
-        // Carga inicial
-        listaOriginal = FakeRepository.getAllGastos()
+        listaMaestra = FakeRepository.getAllGastos()
         aplicarFiltros()
     }
 
     fun agregarGasto(gasto: Gasto) {
         FakeRepository.addGasto(gasto)
-        listaOriginal = FakeRepository.getAllGastos()
-        aplicarFiltros() // Re-aplicar filtros al añadir
+        listaMaestra = FakeRepository.getAllGastos()
+        aplicarFiltros()
     }
 
     fun eliminarGastosSeleccionados(ids: List<String>) {
-        val nuevaLista = listaOriginal.toMutableList()
+        val nuevaLista = listaMaestra.toMutableList()
         nuevaLista.removeAll { it.id in ids }
-        listaOriginal = nuevaLista
+        listaMaestra = nuevaLista
         aplicarFiltros()
     }
 
-    // --- LÓGICA DE FILTRADO ---
+    // --- NUEVAS FUNCIONES DE FILTRO ---
 
-    fun setFiltroTexto(texto: String) {
-        filtroTexto = texto
+    fun filtrarPorTexto(query: String) {
+        busquedaActual = query
         aplicarFiltros()
     }
 
-    fun setFiltroCategoria(categoria: String?) {
-        filtroCategoria = categoria
+    fun filtrarPorCategoria(categoria: String) {
+        categoriaActual = categoria
+        aplicarFiltros()
+    }
+
+    fun filtrarPorEstado(estado: String) {
+        estadoActual = estado
+        aplicarFiltros()
+    }
+
+    fun cambiarOrdenFecha(masAntiguoPrimero: Boolean) {
+        ordenFechaAscendente = masAntiguoPrimero
         aplicarFiltros()
     }
 
     private fun aplicarFiltros() {
-        var listaFiltrada = listaOriginal
+        var resultado = listaMaestra
 
-        // 1. Filtro por Texto (Buscador)
-        if (filtroTexto.isNotEmpty()) {
-            listaFiltrada = listaFiltrada.filter {
-                it.nombreComercio.contains(filtroTexto, ignoreCase = true) ||
-                        it.categoria.contains(filtroTexto, ignoreCase = true)
+        // 1. Texto
+        if (busquedaActual.isNotEmpty()) {
+            resultado = resultado.filter {
+                it.nombreComercio.contains(busquedaActual, ignoreCase = true) ||
+                        it.categoria.contains(busquedaActual, ignoreCase = true)
             }
         }
 
-        // 2. Filtro por Categoría (Chip)
-        if (filtroCategoria != null && filtroCategoria != "Todas") {
-            listaFiltrada = listaFiltrada.filter {
-                it.categoria.equals(filtroCategoria, ignoreCase = true)
-            }
+        // 2. Categoría
+        if (categoriaActual != "Todas" && categoriaActual != "Categoría") {
+            resultado = resultado.filter { it.categoria.equals(categoriaActual, ignoreCase = true) }
         }
 
-        // Actualizamos la UI
-        _gastos.value = listaFiltrada
-        calcularTotales(listaFiltrada)
+        // 3. Estado (NUEVO)
+        if (estadoActual != "Todos" && estadoActual != "Estado") {
+            resultado = resultado.filter { it.estado.name.equals(estadoActual, ignoreCase = true) }
+        }
+
+        // 4. Ordenar (NUEVO)
+        resultado = if (ordenFechaAscendente) {
+            resultado.sortedBy { it.timestamp } // Más antiguo primero (ascendente)
+        } else {
+            resultado.sortedByDescending { it.timestamp } // Más nuevo primero
+        }
+
+        _gastos.value = resultado
+        calcularTotales(listaMaestra) // Totales siempre sobre el global
     }
 
     private fun calcularTotales(lista: List<Gasto>) {

@@ -9,5 +9,6 @@ data class Gasto(
     val categoria: String,
     val monto: Double,
     val estado: EstadoGasto,
+    val timestamp: Long = System.currentTimeMillis(), // NUEVO: Para ordenar fechas
     var isSelected: Boolean = false
 )

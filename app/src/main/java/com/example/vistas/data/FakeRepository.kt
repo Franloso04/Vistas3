@@ -4,20 +4,17 @@ import com.example.vistas.model.Gasto
 import com.example.vistas.model.EstadoGasto
 
 object FakeRepository {
-    // Usamos una lista mutable para poder añadir gastos desde el OCR
     private val listaGastos = mutableListOf(
-        Gasto("1", "Starbucks Coffee", "15 Oct 2023", "Comida", 12.50, EstadoGasto.APROBADO),
-        Gasto("2", "Uber Trip", "14 Oct 2023", "Transporte", 24.00, EstadoGasto.PENDIENTE),
-        Gasto("3", "Apple Store", "12 Oct 2023", "Equipamiento", 99.00, EstadoGasto.RECHAZADO)
+        Gasto("1", "Starbucks Coffee", "15 Oct 2023", "Comida", 12.50, EstadoGasto.APROBADO, 1697366400000),
+        Gasto("2", "Uber Trip", "14 Oct 2023", "Transporte", 24.00, EstadoGasto.PENDIENTE, 1697280000000),
+        Gasto("3", "Apple Store", "12 Oct 2023", "Equipamiento", 99.00, EstadoGasto.RECHAZADO, 1697107200000)
     )
 
-    fun getAllGastos(): List<Gasto> = listaGastos
+    fun getAllGastos(): List<Gasto> = listaGastos.toList() // Devuelve copia para seguridad
 
-    fun getRecentActivity(): List<Gasto> = listaGastos.take(5)
     fun addGasto(nuevoGasto: Gasto) {
-        listaGastos.add(0, nuevoGasto) // Lo añade al principio de la lista
+        listaGastos.add(0, nuevoGasto)
     }
 }
-
 
 
