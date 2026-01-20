@@ -3,7 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/dashboardFragment">
+    app:startDestination="@id/loginFragment"> <fragment
+    android:id="@+id/loginFragment"
+    android:name="com.example.vistas.LoginFragment"
+    tools:layout="@layout/screen_log_empl">
+    <action
+        android:id="@+id/action_login_to_dashboard"
+        app:destination="@id/dashboardFragment"
+        app:popUpTo="@id/loginFragment"
+        app:popUpToInclusive="true" />
+</fragment>
 
     <fragment
         android:id="@+id/dashboardFragment"
@@ -12,9 +21,13 @@
 
     <fragment
         android:id="@+id/expensesFragment"
-        android:name="com.example.vistas.DashboardFragment"
+        android:name="com.example.vistas.ExpensesFragment"
         tools:layout="@layout/screen_hist_gast" />
-    
+
+    <fragment
+        android:id="@+id/ocrFragment"
+        android:name="com.example.vistas.OcrFragment"
+        tools:layout="@layout/screen_val_tick" />
 
     <fragment
         android:id="@+id/reportsFragment"

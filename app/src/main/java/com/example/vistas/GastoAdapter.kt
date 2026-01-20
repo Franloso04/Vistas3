@@ -74,31 +74,21 @@ class GastoAdapter(
         val context = holder.itemView.context
         holder.dot.visibility = View.VISIBLE
 
-        when (gasto.estado) {
-            EstadoGasto.APROBADO -> {
-                holder.container.setBackgroundResource(R.drawable.bg_status_approved)
-                holder.status.text = "APROBADO"
-                holder.status.setTextColor(ContextCompat.getColor(context, R.color.status_approved_text))
-                holder.dot.setBackgroundResource(R.drawable.dot_green)
-            }
-            EstadoGasto.PENDIENTE -> {
-                holder.container.setBackgroundResource(R.drawable.bg_status_pending)
-                holder.status.text = "PENDIENTE"
-                holder.status.setTextColor(ContextCompat.getColor(context, R.color.status_pending_text))
-                holder.dot.setBackgroundResource(R.drawable.dot_amber)
-            }
-            EstadoGasto.RECHAZADO -> {
-                holder.container.setBackgroundResource(R.drawable.bg_status_rejected)
-                holder.status.text = "RECHAZADO"
-                holder.status.setTextColor(ContextCompat.getColor(context, R.color.status_rejected_text))
-                holder.dot.setBackgroundResource(R.drawable.dot_red)
-            }
-            EstadoGasto.PROCESANDO -> {
-                holder.container.setBackgroundResource(R.drawable.bg_status_processing)
-                holder.status.text = "Procesando"
-                holder.status.setTextColor(ContextCompat.getColor(context, R.color.status_pending_text))
-                holder.dot.visibility = View.GONE
-            }
+        val (bgColor, textColor, dotRes, text) = when (gasto.estado) {
+            EstadoGasto.APROBADO -> Triple(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
+            EstadoGasto.PENDIENTE -> Triple(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, "PENDIENTE")
+            EstadoGasto.RECHAZADO -> Triple(R.color.status_rejected_bg, R.color.status_rejected_text, R.drawable.dot_red, "RECHAZADO")
+            EstadoGasto.PROCESANDO -> Triple(R.color.status_pending_bg, R.color.status_pending_text, 0, "Procesando")
         }
+
+        holder.container.apply {
+            setBackgroundResource(R.drawable.bg_status_pill)
+            backgroundTintList = ContextCompat.getColorStateList(context, bgColor)
+        }
+        holder.status.apply {
+            this.text = text
+            setTextColor(ContextCompat.getColor(context, textColor))
+        }
+        if (dotRes != 0) holder.dot.setBackgroundResource(dotRes) else holder.dot.visibility = View.GONE
     }
 }
