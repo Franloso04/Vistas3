@@ -7,7 +7,6 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
-import com.example.vistas.model.Gasto
 
 class DonutChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -17,13 +16,19 @@ class DonutChartView @JvmOverloads constructor(
     private val rect = RectF()
     private var slices: List<Pair<Float, Int>> = emptyList()
 
-    fun setData(gastos: List<Gasto>) {
-        val total = gastos.sumOf { it.monto }.toFloat()
-        if (total == 0f) return
+    fun setData(data: Map<String, Double>?) {
+        if (data == null || data.isEmpty()) {
+            slices = emptyList()
+            invalidate()
+            return
+        }
 
-        // Agrupar por categoría y asignar colores
-        val agrupado = gastos.groupBy { it.categoria }
-        var startAngle = -90f
+        val total = data.values.sum().toFloat()
+        if (total == 0f) {
+            slices = emptyList()
+            invalidate()
+            return
+        }
 
         val newSlices = mutableListOf<Pair<Float, Int>>()
 
@@ -36,9 +41,8 @@ class DonutChartView @JvmOverloads constructor(
         )
 
         var colorIndex = 0
-        agrupado.forEach { (_, lista) ->
-            val sum = lista.sumOf { it.monto }.toFloat()
-            val sweepAngle = (sum / total) * 360f
+        data.forEach { (_, monto) ->
+            val sweepAngle = (monto.toFloat() / total) * 360f
             newSlices.add(sweepAngle to colors[colorIndex % colors.size])
             colorIndex++
         }

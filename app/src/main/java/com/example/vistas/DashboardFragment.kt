@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.example.vistas.ui.theme.DonutChartView // Importar tu gráfico
 import java.util.Locale
 
 class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
@@ -18,10 +19,10 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Referencias seguras
+        // Referencias
+        val donutChart = view.findViewById<DonutChartView>(R.id.donutChart) // Referencia al gráfico
         val txtTotalMes = view.findViewById<TextView>(R.id.txtTotalMes)
         val txtTotalPendiente = view.findViewById<TextView>(R.id.txtTotalPendiente)
-
         val layoutCategorias = view.findViewById<LinearLayout>(R.id.layoutStatsCategorias)
         val layoutEmpleados = view.findViewById<LinearLayout>(R.id.layoutStatsEmpleados)
         val sectionEmpleados = view.findViewById<LinearLayout>(R.id.sectionEmpleados)
@@ -34,11 +35,15 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
             txtTotalPendiente.text = formatoMoneda(total)
         }
 
-        // 2. Categorías
+        // 2. Categorías Y GRÁFICO
         viewModel.statsCategorias.observe(viewLifecycleOwner) { mapa ->
+            // Actualizar Gráfico
+            donutChart.setData(mapa)
+
+            // Actualizar Lista
             layoutCategorias.removeAllViews()
             if (mapa.isEmpty()) {
-                agregarFila(layoutCategorias, "Sin gastos registrados", "")
+                agregarFila(layoutCategorias, "Sin datos", "")
             } else {
                 mapa.entries.sortedByDescending { it.value }.forEach { (cat, monto) ->
                     agregarFila(layoutCategorias, cat, formatoMoneda(monto))
@@ -52,11 +57,10 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
             viewModel.statsEmpleados.observe(viewLifecycleOwner) { mapa ->
                 layoutEmpleados.removeAllViews()
                 if (mapa.isEmpty()) {
-                    agregarFila(layoutEmpleados, "Sin datos de empleados", "")
+                    agregarFila(layoutEmpleados, "Sin datos", "")
                 } else {
                     mapa.entries.sortedByDescending { it.value }.forEach { (email, monto) ->
                         val nombre = email.substringBefore("@")
-                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                         agregarFila(layoutEmpleados, nombre, formatoMoneda(monto))
                     }
                 }
@@ -67,36 +71,33 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
     }
 
     private fun agregarFila(parent: LinearLayout, textoIzq: String, textoDer: String) {
-        val context = requireContext()
         val row = LinearLayout(context)
-
-        // Configuramos el layout programáticamente con ancho MATCH_PARENT
+        row.orientation = LinearLayout.HORIZONTAL
         row.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
-        row.orientation = LinearLayout.HORIZONTAL
         row.setPadding(0, 12, 0, 12)
 
         val tvIzq = TextView(context)
         tvIzq.text = textoIzq
-        tvIzq.setTextColor(ContextCompat.getColor(context, R.color.text_main))
+        tvIzq.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_main))
         tvIzq.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
 
         val tvDer = TextView(context)
         tvDer.text = textoDer
         tvDer.setTypeface(null, Typeface.BOLD)
-        tvDer.setTextColor(ContextCompat.getColor(context, R.color.text_main))
+        tvDer.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_main))
         tvDer.gravity = Gravity.END
 
         row.addView(tvIzq)
         row.addView(tvDer)
         parent.addView(row)
 
-        // Línea divisoria
+        // Línea separadora
         val line = View(context)
         line.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2)
-        line.setBackgroundColor(ContextCompat.getColor(context, R.color.text_secondary))
+        line.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
         line.alpha = 0.1f
         parent.addView(line)
     }
