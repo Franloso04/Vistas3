@@ -22,7 +22,7 @@ class GastoAdapter(
         val info: TextView = view.findViewById(R.id.txtInfo)
         val monto: TextView = view.findViewById(R.id.txtMonto)
 
-        // Elementos de la Pastilla
+        // Diseño Pastilla
         val container: LinearLayout = view.findViewById(R.id.layoutStatus)
         val status: TextView = view.findViewById(R.id.txtStatus)
         val dot: View = view.findViewById(R.id.dotStatus)
@@ -42,7 +42,7 @@ class GastoAdapter(
         holder.info.text = "${gasto.fecha} • ${gasto.categoria}"
         holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
-        // CONFIGURACIÓN VISUAL (FONDO + TEXTO + PUNTO)
+        // Diseño
         configurarEstado(holder, gasto)
 
         // Selección
@@ -70,24 +70,18 @@ class GastoAdapter(
         notifyDataSetChanged()
     }
 
-    fun activatingModoSeleccion(activar: Boolean) { // (Tu nombre original era activarModoSeleccion)
+    fun activatingModoSeleccion(activar: Boolean) {
         isSelectionMode = activar
         if (!activar) lista.forEach { it.isSelected = false }
         notifyDataSetChanged()
     }
 
-    fun activarModoSeleccion(activar: Boolean) { // Mantengo tu nombre de función
-        activatingModoSeleccion(activar)
-    }
-
+    fun activarModoSeleccion(activar: Boolean) { activatingModoSeleccion(activar) }
     fun getSelectedCount() = lista.count { it.isSelected }
     fun getSelectedIds() = lista.filter { it.isSelected }.map { it.id }
 
-    // --- LÓGICA VISUAL FINAL ---
     private fun configurarEstado(holder: GastoVH, gasto: Gasto) {
         val ctx = holder.itemView.context
-
-        // Variables para guardar la configuración
         val bgColor: Int
         val txtColor: Int
         val dotDrawable: Int
@@ -97,31 +91,26 @@ class GastoAdapter(
             EstadoGasto.APROBADO -> {
                 bgColor = R.color.status_approved_bg
                 txtColor = R.color.status_approved_text
-                dotDrawable = R.drawable.dot_green // Asegúrate de tener este archivo
+                dotDrawable = R.drawable.dot_green
                 text = "APROBADO"
             }
             EstadoGasto.RECHAZADO -> {
                 bgColor = R.color.status_rejected_bg
                 txtColor = R.color.status_rejected_text
-                dotDrawable = R.drawable.dot_red // Asegúrate de tener este archivo
+                dotDrawable = R.drawable.dot_red
                 text = "RECHAZADO"
             }
-            else -> { // PENDIENTE o PROCESANDO
+            else -> {
                 bgColor = R.color.status_pending_bg
                 txtColor = R.color.status_pending_text
-                dotDrawable = R.drawable.dot_amber // O el nombre que tengas (dot_yellow/orange)
+                dotDrawable = R.drawable.dot_amber
                 text = if (gasto.estado == EstadoGasto.PROCESANDO) "PROCESANDO" else "PENDIENTE"
             }
         }
 
-        // 1. Fondo de la pastilla
         holder.container.backgroundTintList = ContextCompat.getColorStateList(ctx, bgColor)
-
-        // 2. Color del texto
         holder.status.setTextColor(ContextCompat.getColor(ctx, txtColor))
         holder.status.text = text
-
-        // 3. Color/Drawable del punto
         holder.dot.setBackgroundResource(dotDrawable)
         holder.dot.visibility = View.VISIBLE
     }

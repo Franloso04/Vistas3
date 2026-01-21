@@ -13,25 +13,26 @@ class MainViewModel : ViewModel() {
     private val repository = FirestoreRepository()
     private val auth = FirebaseAuth.getInstance()
 
-    // --- LIVE DATA BÁSICOS ---
+    // --- LIVE DATA ---
+    // 1. GLOBAL (Para AdminFragment y Dashboard - Contiene TODO si eres admin)
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
+    // 2. FILTRADO (Para ExpensesFragment - Historial - AHORA SOLO TUS TICKETS)
     private val _gastosFiltrados = MutableLiveData<List<Gasto>>()
     val gastosFiltrados: LiveData<List<Gasto>> = _gastosFiltrados
 
+    // 3. TOTALES (Globales para Admin, Personales para Empleado)
     private val _totalMes = MutableLiveData<Double>()
     val totalMes: LiveData<Double> = _totalMes
 
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
-    // --- NUEVOS LIVE DATA (ESTADÍSTICAS) ---
-    // Mapa: "Comida" -> 150.00
+    // 4. ESTADÍSTICAS (Para los gráficos del Dashboard)
     private val _statsCategorias = MutableLiveData<Map<String, Double>>()
     val statsCategorias: LiveData<Map<String, Double>> = _statsCategorias
 
-    // Mapa: "paco@gmail.com" -> 500.00
     private val _statsEmpleados = MutableLiveData<Map<String, Double>>()
     val statsEmpleados: LiveData<Map<String, Double>> = _statsEmpleados
 
@@ -39,7 +40,7 @@ class MainViewModel : ViewModel() {
     private var listaMaestra: List<Gasto> = emptyList()
     var isAdmin = false
 
-    // Filtros
+    // Filtros de UI
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
@@ -65,6 +66,7 @@ class MainViewModel : ViewModel() {
             actualizarUI()
         }
 
+        // Si es Admin descargamos TODO para poder calcular los totales de la empresa
         if (isAdmin) {
             repository.getAllGastos(callback)
         } else {
@@ -84,30 +86,29 @@ class MainViewModel : ViewModel() {
     fun rechazarGasto(id: String) { if (isAdmin) repository.updateEstado(id, EstadoGasto.RECHAZADO) }
     fun eliminarGastoIndividual(id: String) { repository.deleteGasto(id) }
 
-    // --- CÁLCULOS Y UI ---
+    // --- CÁLCULOS Y ACTUALIZACIÓN ---
     private fun actualizarUI() {
-        // 1. Totales Generales
+        // 1. Actualizamos la lista GLOBAL (Admin Panel la necesita completa)
         _gastosGlobales.value = listaMaestra
+
+        // 2. Calculamos Totales (Si es Admin, esto suma toda la empresa)
         _totalMes.value = listaMaestra.sumOf { it.monto }
         _totalPendiente.value = listaMaestra.filter {
             it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
         }.sumOf { it.monto }
 
-        // 2. Agrupación por CATEGORÍA (Para el gráfico/lista)
-        // Agrupa por nombre de categoría y suma los montos
-        val mapCat = listaMaestra.groupBy { it.categoria }
+        // 3. Estadísticas para Gráficos
+        _statsCategorias.value = listaMaestra.groupBy { it.categoria }
             .mapValues { entry -> entry.value.sumOf { it.monto } }
-        _statsCategorias.value = mapCat
 
-        // 3. Agrupación por EMPLEADO (Solo útil si eres Admin)
-        val mapEmp = listaMaestra.groupBy { it.emailUsuario }
+        _statsEmpleados.value = listaMaestra.groupBy { it.emailUsuario }
             .mapValues { entry -> entry.value.sumOf { it.monto } }
-        _statsEmpleados.value = mapEmp
 
+        // 4. Actualizar el Historial (Aquí aplicamos el filtro personal)
         aplicarFiltros()
     }
 
-    // --- LÓGICA DE FILTROS ---
+    // --- LÓGICA DE FILTROS (MODIFICADA) ---
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
     fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
@@ -115,19 +116,35 @@ class MainViewModel : ViewModel() {
 
     private fun aplicarFiltros() {
         var res = listaMaestra
+        val currentUid = auth.currentUser?.uid
+
+        // --- CAMBIO CLAVE: SIEMPRE FILTRAR POR USUARIO EN EL HISTORIAL ---
+        // Aunque seas Admin y 'listaMaestra' tenga todo, para la pantalla de historial
+        // solo queremos ver TUS gastos.
+        if (currentUid != null) {
+            res = res.filter { it.userId == currentUid }
+        }
+        // ------------------------------------------------------------------
+
+        // Filtro Texto
         if (busquedaActual.isNotEmpty()) {
             res = res.filter {
                 it.nombreComercio.contains(busquedaActual, true) ||
-                        it.emailUsuario.contains(busquedaActual, true)
+                        it.categoria.contains(busquedaActual, true)
             }
         }
+        // Filtro Categoría
         if (categoriaActual != "Todas" && categoriaActual != "Categoría") {
             res = res.filter { it.categoria.equals(categoriaActual, true) }
         }
+        // Filtro Estado
         if (estadoActual != "Todos" && estadoActual != "Estado") {
             res = res.filter { it.estado.name.equals(estadoActual, true) }
         }
+        // Orden
         res = if (ordenMasReciente) res.sortedByDescending { it.timestamp } else res.sortedBy { it.timestamp }
+
+        // Enviamos la lista filtrada (PERSONAL) al Historial
         _gastosFiltrados.value = res
     }
 }
