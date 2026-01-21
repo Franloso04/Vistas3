@@ -19,49 +19,57 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Referencias a Vistas
+        // --- 1. REFERENCIAS UI ---
         val txtTotalMes = view.findViewById<TextView>(R.id.txtTotalMes)
         val txtTotalPendiente = view.findViewById<TextView>(R.id.txtTotalPendiente)
 
-        // Secciones Admin
         val layoutGrafico = view.findViewById<LinearLayout>(R.id.layoutGrafico)
         val sectionCategorias = view.findViewById<LinearLayout>(R.id.sectionCategorias)
-        val sectionEmpleados = view.findViewById<LinearLayout>(R.id.sectionEmpleados) // ¡Ahora sí existe!
+        val sectionEmpleados = view.findViewById<LinearLayout>(R.id.sectionEmpleados)
 
-        // Contenedores de listas y gráfico
         val donutChart = view.findViewById<DonutChartView>(R.id.donutChart)
         val layoutListCategorias = view.findViewById<LinearLayout>(R.id.layoutStatsCategorias)
         val layoutListEmpleados = view.findViewById<LinearLayout>(R.id.layoutStatsEmpleados)
 
-        // 1. SIEMPRE: Mostrar Totales
-        viewModel.totalMes.observe(viewLifecycleOwner) { txtTotalMes.text = formatoMoneda(it) }
-        viewModel.totalPendiente.observe(viewLifecycleOwner) { txtTotalPendiente.text = formatoMoneda(it) }
+        // --- 2. DATOS COMUNES (PARA TODOS: Admin y Empleado) ---
 
-        // 2. LÓGICA DE ROLES (Admin vs Empleado)
-        if (viewModel.isAdmin) {
-            // -- ES ADMIN: Ver todo (Gráfico, Categorías, Empleados) --
-            layoutGrafico.visibility = View.VISIBLE
-            sectionCategorias.visibility = View.VISIBLE
-            sectionEmpleados.visibility = View.VISIBLE
+        // A) Totales Numéricos
+        viewModel.totalMes.observe(viewLifecycleOwner) {
+            txtTotalMes.text = formatoMoneda(it ?: 0.0)
+        }
+        viewModel.totalPendiente.observe(viewLifecycleOwner) {
+            txtTotalPendiente.text = formatoMoneda(it ?: 0.0)
+        }
 
-            // A) Categorías y Gráfico
-            viewModel.statsCategorias.observe(viewLifecycleOwner) { mapa ->
-                donutChart.setData(mapa) // Pintar gráfico
+        // B) Gráfico y Desglose de Categorías (AHORA VISIBLE PARA TODOS)
+        // Hacemos visibles las secciones
+        layoutGrafico.visibility = View.VISIBLE
+        sectionCategorias.visibility = View.VISIBLE
 
-                layoutListCategorias.removeAllViews()
-                if (mapa.isEmpty()) {
-                    agregarFila(layoutListCategorias, "Sin datos globales", "")
-                } else {
-                    mapa.entries.sortedByDescending { it.value }.forEach { (cat, monto) ->
-                        agregarFila(layoutListCategorias, cat, formatoMoneda(monto))
-                    }
+        // Observamos los datos (Si es admin llegan globales, si es empleado llegan los suyos)
+        viewModel.statsCategorias.observe(viewLifecycleOwner) { mapa ->
+            donutChart.setData(mapa) // Actualiza el gráfico
+
+            layoutListCategorias.removeAllViews()
+            if (mapa.isNullOrEmpty()) {
+                agregarFila(layoutListCategorias, "Sin gastos registrados", "")
+            } else {
+                // Ordenamos por mayor gasto
+                mapa.entries.sortedByDescending { it.value }.forEach { (cat, monto) ->
+                    agregarFila(layoutListCategorias, cat, formatoMoneda(monto))
                 }
             }
+        }
 
-            // B) Empleados
+        // --- 3. DATOS EXCLUSIVOS (SOLO ADMIN) ---
+        if (viewModel.isAdmin) {
+            // Mostrar sección de empleados
+            sectionEmpleados.visibility = View.VISIBLE
+
+            // Llenar lista de empleados
             viewModel.statsEmpleados.observe(viewLifecycleOwner) { mapa ->
                 layoutListEmpleados.removeAllViews()
-                if (mapa.isEmpty()) {
+                if (mapa.isNullOrEmpty()) {
                     agregarFila(layoutListEmpleados, "Sin datos de empleados", "")
                 } else {
                     mapa.entries.sortedByDescending { it.value }.forEach { (email, monto) ->
@@ -71,16 +79,14 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
                     }
                 }
             }
-
         } else {
-            // -- ES EMPLEADO: Solo ver Totales --
-            layoutGrafico.visibility = View.GONE
-            sectionCategorias.visibility = View.GONE
+            // Si eres empleado, ocultamos la sección de "Gasto por Empleado"
             sectionEmpleados.visibility = View.GONE
         }
     }
 
-    private fun agregarFila(parent: LinearLayout, textoIzq: String, textoDer: String) {
+    // Función auxiliar para pintar las filas de las listas
+    private fun agregarFila(parent: LinearLayout, textoIzq: String, textoDerecha: String) {
         val context = requireContext()
         val row = LinearLayout(context)
         row.layoutParams = LinearLayout.LayoutParams(
@@ -88,15 +94,17 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
         row.orientation = LinearLayout.HORIZONTAL
-        row.setPadding(0, 12, 0, 12)
+        row.setPadding(0, 16, 0, 16)
 
         val tvIzq = TextView(context)
         tvIzq.text = textoIzq
+        tvIzq.textSize = 14f
         tvIzq.setTextColor(ContextCompat.getColor(context, R.color.text_main))
         tvIzq.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
 
         val tvDer = TextView(context)
-        tvDer.text = textoDer
+        tvDer.text = textoDerecha
+        tvDer.textSize = 14f
         tvDer.setTypeface(null, Typeface.BOLD)
         tvDer.setTextColor(ContextCompat.getColor(context, R.color.text_main))
         tvDer.gravity = Gravity.END
@@ -105,10 +113,11 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
         row.addView(tvDer)
         parent.addView(row)
 
+        // Línea divisoria sutil
         val line = View(context)
-        line.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2)
+        line.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
         line.setBackgroundColor(ContextCompat.getColor(context, R.color.text_secondary))
-        line.alpha = 0.1f
+        line.alpha = 0.2f
         parent.addView(line)
     }
 
