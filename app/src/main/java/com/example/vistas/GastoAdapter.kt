@@ -13,102 +13,81 @@ import com.example.vistas.model.Gasto
 
 class GastoAdapter(
     private var lista: List<Gasto>,
-    var isSelectionMode: Boolean = false, // Propiedad pública
-    private val onAction: () -> Unit
-) : RecyclerView.Adapter<GastoAdapter.GastoViewHolder>() {
+    var isSelectionMode: Boolean = false,
+    private val onSelectionChanged: () -> Unit
+) : RecyclerView.Adapter<GastoAdapter.GastoVH>() {
 
-    class GastoViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class GastoVH(view: View) : RecyclerView.ViewHolder(view) {
         val comercio: TextView = view.findViewById(R.id.txtComercio)
         val info: TextView = view.findViewById(R.id.txtInfo)
         val monto: TextView = view.findViewById(R.id.txtMonto)
         val status: TextView = view.findViewById(R.id.txtStatus)
         val container: LinearLayout = view.findViewById(R.id.layoutStatus)
-        val dot: View = view.findViewById(R.id.dotStatus)
         val check: CheckBox = view.findViewById(R.id.checkDelete)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GastoViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_gasto, parent, false)
-        return GastoViewHolder(view)
+    override fun onCreateViewHolder(p: ViewGroup, t: Int): GastoVH {
+        val view = LayoutInflater.from(p.context).inflate(R.layout.item_gasto, p, false)
+        return GastoVH(view)
     }
 
-    override fun onBindViewHolder(holder: GastoViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: GastoVH, position: Int) {
         val gasto = lista[position]
 
         holder.comercio.text = gasto.nombreComercio
         holder.info.text = "${gasto.fecha} • ${gasto.categoria}"
         holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
+        // Diseño de la pastilla de estado
         configurarEstado(holder, gasto)
 
-        // Lógica de visualización del Checkbox
-        holder.check.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
-        holder.check.setOnCheckedChangeListener(null) // Evitar bugs al hacer scroll
-        holder.check.isChecked = gasto.isSelected
+        // LÓGICA DE SELECCIÓN
+        if (isSelectionMode) {
+            holder.check.visibility = View.VISIBLE
+            holder.check.setOnCheckedChangeListener(null)
+            holder.check.isChecked = gasto.isSelected
 
-        // Click listener unificado
-        val listener = View.OnClickListener {
-            if (isSelectionMode) {
+            // Click en toda la fila selecciona
+            val clickListener = View.OnClickListener {
                 gasto.isSelected = !gasto.isSelected
                 holder.check.isChecked = gasto.isSelected
-                onAction() // Notificar cambios
+                onSelectionChanged()
             }
+            holder.itemView.setOnClickListener(clickListener)
+            holder.check.setOnClickListener(clickListener)
+        } else {
+            holder.check.visibility = View.GONE
+            holder.itemView.setOnClickListener(null) // Reset click normal si hubiera detalle
         }
-
-        holder.itemView.setOnClickListener(listener)
-        holder.check.setOnClickListener(listener)
     }
 
-    override fun getItemCount(): Int = lista.size
-
-    // --- MÉTODOS DE AYUDA ---
+    override fun getItemCount() = lista.size
 
     fun updateData(nuevaLista: List<Gasto>) {
         this.lista = nuevaLista
         notifyDataSetChanged()
     }
 
-    // RENOMBRADO PARA EVITAR EL ERROR "PLATFORM DECLARATION CLASH"
+    // Funciones para el Fragmento
     fun activarModoSeleccion(activar: Boolean) {
-        this.isSelectionMode = activar
-        if (!activar) {
-            // Si desactivamos, limpiamos las selecciones
-            lista.forEach { it.isSelected = false }
-        }
+        isSelectionMode = activar
+        if (!activar) lista.forEach { it.isSelected = false }
         notifyDataSetChanged()
     }
 
-    fun getSelectedCount(): Int = lista.count { it.isSelected }
+    fun getSelectedCount() = lista.count { it.isSelected }
+    fun getSelectedIds() = lista.filter { it.isSelected }.map { it.id }
 
-    fun getSelectedIds(): List<String> = lista.filter { it.isSelected }.map { it.id }
-
-    // --- DISEÑO DE ESTADOS ---
-    private data class StatusConfig(val bgColor: Int, val textColor: Int, val dotRes: Int, val label: String)
-
-    private fun configurarEstado(holder: GastoViewHolder, gasto: Gasto) {
-        val context = holder.itemView.context
-        val config = when (gasto.estado) {
-            EstadoGasto.APROBADO -> StatusConfig(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
-            EstadoGasto.PENDIENTE -> StatusConfig(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, "PENDIENTE")
-            EstadoGasto.RECHAZADO -> StatusConfig(R.color.status_rejected_bg, R.color.status_rejected_text, R.drawable.dot_red, "RECHAZADO")
-            EstadoGasto.PROCESANDO -> StatusConfig(R.color.status_pending_bg, R.color.status_pending_text, 0, "Procesando")
+    // Colores de estado
+    private fun configurarEstado(holder: GastoVH, gasto: Gasto) {
+        val ctx = holder.itemView.context
+        val (bg, txt, label) = when (gasto.estado) {
+            EstadoGasto.APROBADO -> Triple(R.color.status_approved_bg, R.color.status_approved_text, "APROBADO")
+            EstadoGasto.RECHAZADO -> Triple(R.color.status_rejected_bg, R.color.status_rejected_text, "RECHAZADO")
+            else -> Triple(R.color.status_pending_bg, R.color.status_pending_text, "PROCESANDO")
         }
-
-        holder.container.apply {
-            setBackgroundResource(R.drawable.bg_status_pill)
-            backgroundTintList = ContextCompat.getColorStateList(context, config.bgColor)
-        }
-
-        holder.status.apply {
-            text = config.label
-            setTextColor(ContextCompat.getColor(context, config.textColor))
-        }
-
-        if (config.dotRes != 0) {
-            holder.dot.visibility = View.VISIBLE
-            holder.dot.setBackgroundResource(config.dotRes)
-        } else {
-            holder.dot.visibility = View.GONE
-        }
+        holder.container.backgroundTintList = ContextCompat.getColorStateList(ctx, bg)
+        holder.status.setTextColor(ContextCompat.getColor(ctx, txt))
+        holder.status.text = label
     }
 }

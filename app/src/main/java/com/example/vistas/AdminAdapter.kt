@@ -11,7 +11,8 @@ import com.example.vistas.model.Gasto
 class AdminAdapter(
     private var lista: List<Gasto>,
     private val onAprobar: (Gasto) -> Unit,
-    private val onRechazar: (Gasto) -> Unit
+    private val onRechazar: (Gasto) -> Unit,
+    private val onEliminar: (Gasto) -> Unit // <--- ESTO ES LO QUE TE FALTA
 ) : RecyclerView.Adapter<AdminAdapter.AdminViewHolder>() {
 
     class AdminViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -20,8 +21,11 @@ class AdminAdapter(
         val comercio: TextView = view.findViewById(R.id.txtComercioAdmin)
         val categoria: TextView = view.findViewById(R.id.txtCategoriaAdmin)
         val monto: TextView = view.findViewById(R.id.txtMontoAdmin)
+
+        // Botones
         val btnAprobar: Button = view.findViewById(R.id.btnAprobar)
         val btnRechazar: Button = view.findViewById(R.id.btnRechazar)
+        //val btnEliminar: Button = view.findViewById(R.id.btnEliminarAdmin) // Asegúrate de que este ID existe en item_admin_gasto.xml
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AdminViewHolder {
@@ -38,8 +42,10 @@ class AdminAdapter(
         holder.categoria.text = gasto.categoria
         holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
+        // Conectamos los 3 botones
         holder.btnAprobar.setOnClickListener { onAprobar(gasto) }
         holder.btnRechazar.setOnClickListener { onRechazar(gasto) }
+        //holder.btnEliminar.setOnClickListener { onEliminar(gasto) }
     }
 
     override fun getItemCount() = lista.size

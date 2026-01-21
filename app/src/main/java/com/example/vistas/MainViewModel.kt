@@ -14,7 +14,7 @@ class MainViewModel : ViewModel() {
     private val repository = FirestoreRepository()
     private val auth = FirebaseAuth.getInstance()
 
-    // LIVEDATA
+    // --- LIVE DATA (Observables) ---
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
@@ -23,14 +23,15 @@ class MainViewModel : ViewModel() {
 
     private val _totalMes = MutableLiveData<Double>()
     val totalMes: LiveData<Double> = _totalMes
+
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
-    // ESTADO INTERNO
+    // --- VARIABLES INTERNAS ---
     private var listaMaestra: List<Gasto> = emptyList()
-    var isAdmin = false // Público para que la UI sepa si mostrar botones de Admin
+    var isAdmin = false
 
-    // FILTROS
+    // --- VARIABLES DE FILTRO ---
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
@@ -40,27 +41,21 @@ class MainViewModel : ViewModel() {
         detectarRolYCargar()
     }
 
-    // --- ESTA ES LA FUNCIÓN QUE FALTABA ---
-    fun recargarSesion() {
-        Log.d("VIEWMODEL", "Recargando sesión tras Login...")
-        detectarRolYCargar()
-    }
+    fun recargarSesion() { detectarRolYCargar() }
 
     private fun detectarRolYCargar() {
         val user = auth.currentUser
         if (user != null) {
+            // Si el email contiene "admin", activamos modo Admin
             isAdmin = user.email?.lowercase()?.contains("admin") == true
-            Log.d("VIEWMODEL", "Usuario: ${user.email} | Es Admin: $isAdmin")
             cargarDatos(user.uid)
-        } else {
-            Log.e("VIEWMODEL", "No hay usuario logueado. Esperando login...")
         }
     }
 
     private fun cargarDatos(userId: String) {
         val callback = { lista: List<Gasto> ->
             listaMaestra = lista
-            actualizarUI()
+            actualizarUI() // Esto refresca Dashboard y Totales
         }
 
         if (isAdmin) {
@@ -70,25 +65,18 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    // --- ACCIONES ---
+    // --- ACCIONES DE USUARIO (Añadir / Borrar Varios) ---
     fun agregarGasto(gasto: Gasto) {
         val user = auth.currentUser
-        if (user != null) {
-            val gastoReal = gasto.copy(
-                userId = user.uid,
-                emailUsuario = user.email ?: "Desconocido"
-            )
-            repository.addGasto(gastoReal,
-                onSuccess = { Log.d("VIEWMODEL", "Gasto añadido ok") },
-                onFailure = { Log.e("VIEWMODEL", "Error añadiendo") }
-            )
-        }
+        val gastoReal = gasto.copy(userId = user?.uid ?: "", emailUsuario = user?.email ?: "")
+        repository.addGasto(gastoReal, {}, {})
     }
 
     fun eliminarGastosSeleccionados(ids: List<String>) {
         ids.forEach { repository.deleteGasto(it) }
     }
 
+    // --- ACCIONES DE ADMIN (Las que te daban error rojo) ---
     fun aprobarGasto(id: String) {
         if (isAdmin) repository.updateEstado(id, EstadoGasto.APROBADO)
     }
@@ -97,16 +85,23 @@ class MainViewModel : ViewModel() {
         if (isAdmin) repository.updateEstado(id, EstadoGasto.RECHAZADO)
     }
 
-    // --- UI Y FILTROS ---
+    fun eliminarGastoIndividual(id: String) {
+        repository.deleteGasto(id)
+    }
+
+    // --- ACTUALIZACIÓN UI Y CÁLCULOS ---
     private fun actualizarUI() {
         _gastosGlobales.value = listaMaestra
         _totalMes.value = listaMaestra.sumOf { it.monto }
         _totalPendiente.value = listaMaestra.filter {
             it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
         }.sumOf { it.monto }
+
+        // Aplicamos filtros para actualizar la lista del Historial
         aplicarFiltros()
     }
 
+    // --- LÓGICA DE FILTROS (Para el Historial) ---
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
     fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
@@ -115,19 +110,22 @@ class MainViewModel : ViewModel() {
     private fun aplicarFiltros() {
         var res = listaMaestra
 
+        // 1. Texto
         if (busquedaActual.isNotEmpty()) {
             res = res.filter {
                 it.nombreComercio.contains(busquedaActual, true) ||
                         it.emailUsuario.contains(busquedaActual, true)
             }
         }
+        // 2. Categoría
         if (categoriaActual != "Todas" && categoriaActual != "Categoría") {
             res = res.filter { it.categoria.equals(categoriaActual, true) }
         }
+        // 3. Estado
         if (estadoActual != "Todos" && estadoActual != "Estado") {
             res = res.filter { it.estado.name.equals(estadoActual, true) }
         }
-
+        // 4. Orden
         res = if (ordenMasReciente) res.sortedByDescending { it.timestamp } else res.sortedBy { it.timestamp }
 
         _gastosFiltrados.value = res
