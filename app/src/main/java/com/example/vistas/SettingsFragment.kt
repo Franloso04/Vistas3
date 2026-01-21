@@ -1,6 +1,7 @@
 package com.example.vistas
 
 import android.app.AlertDialog
+import android.content.Intent // IMPORTANTE: Necesario para cambiar de Activity
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
@@ -19,7 +20,7 @@ class SettingsFragment : Fragment(R.layout.screen_settings) {
 
         // Referencias
         val btnLogout = view.findViewById<Button>(R.id.btnLogout)
-        val btnAdmin = view.findViewById<Button>(R.id.btnAdminPanel) // El nuevo botón
+        val btnAdmin = view.findViewById<Button>(R.id.btnAdminPanel)
         val txtUser = view.findViewById<TextView>(R.id.txtCurrentUser)
         val switchDark = view.findViewById<MaterialSwitch>(R.id.switchDarkMode)
 
@@ -29,18 +30,16 @@ class SettingsFragment : Fragment(R.layout.screen_settings) {
         txtUser.text = email
 
         // --- LÓGICA DE ADMIN ---
-        // Si el correo contiene "admin", mostramos el botón
         if (email.lowercase().contains("admin")) {
             btnAdmin.visibility = View.VISIBLE
             btnAdmin.setOnClickListener {
-                // Navegamos al panel de admin
                 findNavController().navigate(R.id.adminFragment)
             }
         } else {
             btnAdmin.visibility = View.GONE
         }
 
-        // Lógica Modo Oscuro
+        // --- LÓGICA MODO OSCURO ---
         val currentNightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         switchDark.isChecked = currentNightMode == Configuration.UI_MODE_NIGHT_YES
 
@@ -49,16 +48,24 @@ class SettingsFragment : Fragment(R.layout.screen_settings) {
             AppCompatDelegate.setDefaultNightMode(mode)
         }
 
-        // Lógica Cerrar Sesión
+        // --- LÓGICA CERRAR SESIÓN (MODIFICADA) ---
         btnLogout.setOnClickListener {
             AlertDialog.Builder(requireContext())
                 .setTitle("Cerrar Sesión")
                 .setMessage("¿Seguro que quieres salir?")
                 .setPositiveButton("Salir") { _, _ ->
+                    // 1. Cerrar sesión en Firebase
                     FirebaseAuth.getInstance().signOut()
-                    val navOptions = androidx.navigation.NavOptions.Builder()
-                        .setPopUpTo(R.id.nav_graph, true).build()
-                    findNavController().navigate(R.id.loginFragment, null, navOptions)
+
+                    // 2. Redirigir a la IntroActivity (Pantalla del Edificio)
+                    val intent = Intent(requireContext(), IntroActivity::class.java)
+
+                    // 3. Limpiar la pila de actividades (Borra el historial para no poder volver atrás)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+
+                    // 4. Iniciar y cerrar la actual
+                    startActivity(intent)
+                    requireActivity().finish()
                 }
                 .setNegativeButton("Cancelar", null)
                 .show()
