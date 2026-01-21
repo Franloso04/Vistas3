@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.example.vistas.ui.theme.DonutChartView // Importar tu gráfico
+import com.example.vistas.ui.theme.DonutChartView
 import java.util.Locale
 
 class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
@@ -19,85 +19,95 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Referencias
-        val donutChart = view.findViewById<DonutChartView>(R.id.donutChart) // Referencia al gráfico
+        // Referencias a Vistas
         val txtTotalMes = view.findViewById<TextView>(R.id.txtTotalMes)
         val txtTotalPendiente = view.findViewById<TextView>(R.id.txtTotalPendiente)
-        val layoutCategorias = view.findViewById<LinearLayout>(R.id.layoutStatsCategorias)
-        val layoutEmpleados = view.findViewById<LinearLayout>(R.id.layoutStatsEmpleados)
-        val sectionEmpleados = view.findViewById<LinearLayout>(R.id.sectionEmpleados)
 
-        // 1. Totales
-        viewModel.totalMes.observe(viewLifecycleOwner) { total ->
-            txtTotalMes.text = formatoMoneda(total)
-        }
-        viewModel.totalPendiente.observe(viewLifecycleOwner) { total ->
-            txtTotalPendiente.text = formatoMoneda(total)
-        }
+        // Secciones Admin
+        val layoutGrafico = view.findViewById<LinearLayout>(R.id.layoutGrafico)
+        val sectionCategorias = view.findViewById<LinearLayout>(R.id.sectionCategorias)
+        val sectionEmpleados = view.findViewById<LinearLayout>(R.id.sectionEmpleados) // ¡Ahora sí existe!
 
-        // 2. Categorías Y GRÁFICO
-        viewModel.statsCategorias.observe(viewLifecycleOwner) { mapa ->
-            // Actualizar Gráfico
-            donutChart.setData(mapa)
+        // Contenedores de listas y gráfico
+        val donutChart = view.findViewById<DonutChartView>(R.id.donutChart)
+        val layoutListCategorias = view.findViewById<LinearLayout>(R.id.layoutStatsCategorias)
+        val layoutListEmpleados = view.findViewById<LinearLayout>(R.id.layoutStatsEmpleados)
 
-            // Actualizar Lista
-            layoutCategorias.removeAllViews()
-            if (mapa.isEmpty()) {
-                agregarFila(layoutCategorias, "Sin datos", "")
-            } else {
-                mapa.entries.sortedByDescending { it.value }.forEach { (cat, monto) ->
-                    agregarFila(layoutCategorias, cat, formatoMoneda(monto))
-                }
-            }
-        }
+        // 1. SIEMPRE: Mostrar Totales
+        viewModel.totalMes.observe(viewLifecycleOwner) { txtTotalMes.text = formatoMoneda(it) }
+        viewModel.totalPendiente.observe(viewLifecycleOwner) { txtTotalPendiente.text = formatoMoneda(it) }
 
-        // 3. Empleados (Solo Admin)
+        // 2. LÓGICA DE ROLES (Admin vs Empleado)
         if (viewModel.isAdmin) {
+            // -- ES ADMIN: Ver todo (Gráfico, Categorías, Empleados) --
+            layoutGrafico.visibility = View.VISIBLE
+            sectionCategorias.visibility = View.VISIBLE
             sectionEmpleados.visibility = View.VISIBLE
-            viewModel.statsEmpleados.observe(viewLifecycleOwner) { mapa ->
-                layoutEmpleados.removeAllViews()
+
+            // A) Categorías y Gráfico
+            viewModel.statsCategorias.observe(viewLifecycleOwner) { mapa ->
+                donutChart.setData(mapa) // Pintar gráfico
+
+                layoutListCategorias.removeAllViews()
                 if (mapa.isEmpty()) {
-                    agregarFila(layoutEmpleados, "Sin datos", "")
+                    agregarFila(layoutListCategorias, "Sin datos globales", "")
                 } else {
-                    mapa.entries.sortedByDescending { it.value }.forEach { (email, monto) ->
-                        val nombre = email.substringBefore("@")
-                        agregarFila(layoutEmpleados, nombre, formatoMoneda(monto))
+                    mapa.entries.sortedByDescending { it.value }.forEach { (cat, monto) ->
+                        agregarFila(layoutListCategorias, cat, formatoMoneda(monto))
                     }
                 }
             }
+
+            // B) Empleados
+            viewModel.statsEmpleados.observe(viewLifecycleOwner) { mapa ->
+                layoutListEmpleados.removeAllViews()
+                if (mapa.isEmpty()) {
+                    agregarFila(layoutListEmpleados, "Sin datos de empleados", "")
+                } else {
+                    mapa.entries.sortedByDescending { it.value }.forEach { (email, monto) ->
+                        val nombre = email.substringBefore("@")
+                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                        agregarFila(layoutListEmpleados, nombre, formatoMoneda(monto))
+                    }
+                }
+            }
+
         } else {
+            // -- ES EMPLEADO: Solo ver Totales --
+            layoutGrafico.visibility = View.GONE
+            sectionCategorias.visibility = View.GONE
             sectionEmpleados.visibility = View.GONE
         }
     }
 
     private fun agregarFila(parent: LinearLayout, textoIzq: String, textoDer: String) {
+        val context = requireContext()
         val row = LinearLayout(context)
-        row.orientation = LinearLayout.HORIZONTAL
         row.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
+        row.orientation = LinearLayout.HORIZONTAL
         row.setPadding(0, 12, 0, 12)
 
         val tvIzq = TextView(context)
         tvIzq.text = textoIzq
-        tvIzq.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_main))
+        tvIzq.setTextColor(ContextCompat.getColor(context, R.color.text_main))
         tvIzq.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
 
         val tvDer = TextView(context)
         tvDer.text = textoDer
         tvDer.setTypeface(null, Typeface.BOLD)
-        tvDer.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_main))
+        tvDer.setTextColor(ContextCompat.getColor(context, R.color.text_main))
         tvDer.gravity = Gravity.END
 
         row.addView(tvIzq)
         row.addView(tvDer)
         parent.addView(row)
 
-        // Línea separadora
         val line = View(context)
         line.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2)
-        line.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
+        line.setBackgroundColor(ContextCompat.getColor(context, R.color.text_secondary))
         line.alpha = 0.1f
         parent.addView(line)
     }
