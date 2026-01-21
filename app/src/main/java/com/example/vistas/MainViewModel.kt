@@ -1,6 +1,5 @@
 package com.example.vistas
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -14,7 +13,7 @@ class MainViewModel : ViewModel() {
     private val repository = FirestoreRepository()
     private val auth = FirebaseAuth.getInstance()
 
-    // --- LIVE DATA (Observables) ---
+    // --- LIVE DATA BÁSICOS ---
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
@@ -27,11 +26,20 @@ class MainViewModel : ViewModel() {
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
+    // --- NUEVOS LIVE DATA (ESTADÍSTICAS) ---
+    // Mapa: "Comida" -> 150.00
+    private val _statsCategorias = MutableLiveData<Map<String, Double>>()
+    val statsCategorias: LiveData<Map<String, Double>> = _statsCategorias
+
+    // Mapa: "paco@gmail.com" -> 500.00
+    private val _statsEmpleados = MutableLiveData<Map<String, Double>>()
+    val statsEmpleados: LiveData<Map<String, Double>> = _statsEmpleados
+
     // --- VARIABLES INTERNAS ---
     private var listaMaestra: List<Gasto> = emptyList()
     var isAdmin = false
 
-    // --- VARIABLES DE FILTRO ---
+    // Filtros
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
@@ -46,7 +54,6 @@ class MainViewModel : ViewModel() {
     private fun detectarRolYCargar() {
         val user = auth.currentUser
         if (user != null) {
-            // Si el email contiene "admin", activamos modo Admin
             isAdmin = user.email?.lowercase()?.contains("admin") == true
             cargarDatos(user.uid)
         }
@@ -55,7 +62,7 @@ class MainViewModel : ViewModel() {
     private fun cargarDatos(userId: String) {
         val callback = { lista: List<Gasto> ->
             listaMaestra = lista
-            actualizarUI() // Esto refresca Dashboard y Totales
+            actualizarUI()
         }
 
         if (isAdmin) {
@@ -65,43 +72,42 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    // --- ACCIONES DE USUARIO (Añadir / Borrar Varios) ---
+    // --- ACCIONES ---
     fun agregarGasto(gasto: Gasto) {
         val user = auth.currentUser
         val gastoReal = gasto.copy(userId = user?.uid ?: "", emailUsuario = user?.email ?: "")
         repository.addGasto(gastoReal, {}, {})
     }
 
-    fun eliminarGastosSeleccionados(ids: List<String>) {
-        ids.forEach { repository.deleteGasto(it) }
-    }
+    fun eliminarGastosSeleccionados(ids: List<String>) { ids.forEach { repository.deleteGasto(it) } }
+    fun aprobarGasto(id: String) { if (isAdmin) repository.updateEstado(id, EstadoGasto.APROBADO) }
+    fun rechazarGasto(id: String) { if (isAdmin) repository.updateEstado(id, EstadoGasto.RECHAZADO) }
+    fun eliminarGastoIndividual(id: String) { repository.deleteGasto(id) }
 
-    // --- ACCIONES DE ADMIN (Las que te daban error rojo) ---
-    fun aprobarGasto(id: String) {
-        if (isAdmin) repository.updateEstado(id, EstadoGasto.APROBADO)
-    }
-
-    fun rechazarGasto(id: String) {
-        if (isAdmin) repository.updateEstado(id, EstadoGasto.RECHAZADO)
-    }
-
-    fun eliminarGastoIndividual(id: String) {
-        repository.deleteGasto(id)
-    }
-
-    // --- ACTUALIZACIÓN UI Y CÁLCULOS ---
+    // --- CÁLCULOS Y UI ---
     private fun actualizarUI() {
+        // 1. Totales Generales
         _gastosGlobales.value = listaMaestra
         _totalMes.value = listaMaestra.sumOf { it.monto }
         _totalPendiente.value = listaMaestra.filter {
             it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
         }.sumOf { it.monto }
 
-        // Aplicamos filtros para actualizar la lista del Historial
+        // 2. Agrupación por CATEGORÍA (Para el gráfico/lista)
+        // Agrupa por nombre de categoría y suma los montos
+        val mapCat = listaMaestra.groupBy { it.categoria }
+            .mapValues { entry -> entry.value.sumOf { it.monto } }
+        _statsCategorias.value = mapCat
+
+        // 3. Agrupación por EMPLEADO (Solo útil si eres Admin)
+        val mapEmp = listaMaestra.groupBy { it.emailUsuario }
+            .mapValues { entry -> entry.value.sumOf { it.monto } }
+        _statsEmpleados.value = mapEmp
+
         aplicarFiltros()
     }
 
-    // --- LÓGICA DE FILTROS (Para el Historial) ---
+    // --- LÓGICA DE FILTROS ---
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
     fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
@@ -109,25 +115,19 @@ class MainViewModel : ViewModel() {
 
     private fun aplicarFiltros() {
         var res = listaMaestra
-
-        // 1. Texto
         if (busquedaActual.isNotEmpty()) {
             res = res.filter {
                 it.nombreComercio.contains(busquedaActual, true) ||
                         it.emailUsuario.contains(busquedaActual, true)
             }
         }
-        // 2. Categoría
         if (categoriaActual != "Todas" && categoriaActual != "Categoría") {
             res = res.filter { it.categoria.equals(categoriaActual, true) }
         }
-        // 3. Estado
         if (estadoActual != "Todos" && estadoActual != "Estado") {
             res = res.filter { it.estado.name.equals(estadoActual, true) }
         }
-        // 4. Orden
         res = if (ordenMasReciente) res.sortedByDescending { it.timestamp } else res.sortedBy { it.timestamp }
-
         _gastosFiltrados.value = res
     }
 }
