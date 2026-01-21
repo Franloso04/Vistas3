@@ -1,11 +1,15 @@
 package com.example.vistas
 
+import android.animation.ObjectAnimator
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.vistas.model.EstadoGasto
@@ -18,6 +22,7 @@ class GastoAdapter(
 ) : RecyclerView.Adapter<GastoAdapter.GastoVH>() {
 
     class GastoVH(view: View) : RecyclerView.ViewHolder(view) {
+        val card: CardView = view.findViewById(R.id.cardRoot) // Referencia a la tarjeta completa
         val comercio: TextView = view.findViewById(R.id.txtComercio)
         val info: TextView = view.findViewById(R.id.txtInfo)
         val monto: TextView = view.findViewById(R.id.txtMonto)
@@ -27,7 +32,7 @@ class GastoAdapter(
         val status: TextView = view.findViewById(R.id.txtStatus)
         val dot: View = view.findViewById(R.id.dotStatus)
 
-        val check: CheckBox = view.findViewById(R.id.checkDelete)
+        // Checkbox eliminado del ViewHolder porque ya no existe en el XML
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GastoVH {
@@ -37,29 +42,68 @@ class GastoAdapter(
 
     override fun onBindViewHolder(holder: GastoVH, position: Int) {
         val gasto = lista[position]
+        val ctx = holder.itemView.context
 
+        // Datos básicos
         holder.comercio.text = gasto.nombreComercio
         holder.info.text = "${gasto.fecha} • ${gasto.categoria}"
         holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
-        // CONFIGURACIÓN VISUAL (FONDO + TEXTO + PUNTO)
+        // Diseño de la pastilla de estado
         configurarEstado(holder, gasto)
 
-        // Selección
+        // --- LÓGICA DE SELECCIÓN "PREMIUM" ---
+
+        // 1. Definir colores (Normal vs Seleccionado)
+        val colorNormal = ContextCompat.getColor(ctx, R.color.surface_card)
+        // Usamos un azul muy suave para seleccionado (puedes ajustar el hex o usar un recurso)
+        // En modo noche convendría un gris más claro que el fondo.
+        // Aquí uso un tint del primary_blue con mucha transparencia para que sirva en ambos modos.
+        val colorSeleccionado = adjustAlpha(ContextCompat.getColor(ctx, R.color.primary_blue), 0.2f)
+
         if (isSelectionMode) {
-            holder.check.visibility = View.VISIBLE
-            holder.check.setOnCheckedChangeListener(null)
-            holder.check.isChecked = gasto.isSelected
-            val clickListener = View.OnClickListener {
-                gasto.isSelected = !gasto.isSelected
-                holder.check.isChecked = gasto.isSelected
-                onSelectionChanged()
+            // CASO A: Gasto APROBADO (Bloqueado)
+            if (gasto.estado == EstadoGasto.APROBADO) {
+                // Se ve normal, un poco más apagado quizás (opcional)
+                holder.card.setCardBackgroundColor(colorNormal)
+                holder.itemView.alpha = 0.5f // Le bajamos la opacidad para indicar que no es editable
+                holder.itemView.scaleX = 1f
+                holder.itemView.scaleY = 1f
+
+                holder.itemView.setOnClickListener {
+                    Toast.makeText(ctx, "No puedes borrar gastos aprobados", Toast.LENGTH_SHORT).show()
+                }
             }
-            holder.itemView.setOnClickListener(clickListener)
-            holder.check.setOnClickListener(clickListener)
+            // CASO B: SELECCIONABLE (Pendiente/Rechazado)
+            else {
+                holder.itemView.alpha = 1f // Opacidad total
+
+                // Si está seleccionado, cambiamos color y tamaño
+                if (gasto.isSelected) {
+                    holder.card.setCardBackgroundColor(colorSeleccionado)
+                    // Efecto "apretado"
+                    holder.itemView.scaleX = 0.95f
+                    holder.itemView.scaleY = 0.95f
+                } else {
+                    holder.card.setCardBackgroundColor(colorNormal)
+                    holder.itemView.scaleX = 1f
+                    holder.itemView.scaleY = 1f
+                }
+
+                // Click Listener con animación
+                holder.itemView.setOnClickListener {
+                    gasto.isSelected = !gasto.isSelected
+                    notifyItemChanged(position) // Refrescamos solo este item para que haga la animación
+                    onSelectionChanged()
+                }
+            }
         } else {
-            holder.check.visibility = View.GONE
-            holder.itemView.setOnClickListener(null)
+            // MODO NORMAL (Fuera de selección)
+            holder.card.setCardBackgroundColor(colorNormal)
+            holder.itemView.alpha = 1f
+            holder.itemView.scaleX = 1f
+            holder.itemView.scaleY = 1f
+            holder.itemView.setOnClickListener(null) // O abrir detalle si tuvieras
         }
     }
 
@@ -70,59 +114,43 @@ class GastoAdapter(
         notifyDataSetChanged()
     }
 
-    fun activatingModoSeleccion(activar: Boolean) { // (Tu nombre original era activarModoSeleccion)
+    fun activarModoSeleccion(activar: Boolean) {
         isSelectionMode = activar
-        if (!activar) lista.forEach { it.isSelected = false }
+        if (activar) {
+            lista.forEach { if (it.estado == EstadoGasto.APROBADO) it.isSelected = false }
+        } else {
+            lista.forEach { it.isSelected = false }
+        }
         notifyDataSetChanged()
-    }
-
-    fun activarModoSeleccion(activar: Boolean) { // Mantengo tu nombre de función
-        activatingModoSeleccion(activar)
     }
 
     fun getSelectedCount() = lista.count { it.isSelected }
     fun getSelectedIds() = lista.filter { it.isSelected }.map { it.id }
 
-    // --- LÓGICA VISUAL FINAL ---
+    // Función auxiliar para crear un color transparente basado en otro
+    private fun adjustAlpha(color: Int, factor: Float): Int {
+        val alpha = Math.round(Color.alpha(color) * factor)
+        val red = Color.red(color)
+        val green = Color.green(color)
+        val blue = Color.blue(color)
+        return Color.argb(alpha, red, green, blue)
+    }
+
     private fun configurarEstado(holder: GastoVH, gasto: Gasto) {
         val ctx = holder.itemView.context
-
-        // Variables para guardar la configuración
-        val bgColor: Int
-        val txtColor: Int
-        val dotDrawable: Int
-        val text: String
-
-        when (gasto.estado) {
-            EstadoGasto.APROBADO -> {
-                bgColor = R.color.status_approved_bg
-                txtColor = R.color.status_approved_text
-                dotDrawable = R.drawable.dot_green // Asegúrate de tener este archivo
-                text = "APROBADO"
-            }
-            EstadoGasto.RECHAZADO -> {
-                bgColor = R.color.status_rejected_bg
-                txtColor = R.color.status_rejected_text
-                dotDrawable = R.drawable.dot_red // Asegúrate de tener este archivo
-                text = "RECHAZADO"
-            }
-            else -> { // PENDIENTE o PROCESANDO
-                bgColor = R.color.status_pending_bg
-                txtColor = R.color.status_pending_text
-                dotDrawable = R.drawable.dot_amber // O el nombre que tengas (dot_yellow/orange)
-                text = if (gasto.estado == EstadoGasto.PROCESANDO) "PROCESANDO" else "PENDIENTE"
-            }
+        val (bg, txt, dotDraw, label) = when (gasto.estado) {
+            EstadoGasto.APROBADO -> Quad(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
+            EstadoGasto.RECHAZADO -> Quad(R.color.status_rejected_bg, R.color.status_rejected_text, R.drawable.dot_red, "RECHAZADO")
+            else -> Quad(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, if(gasto.estado==EstadoGasto.PROCESANDO) "PROCESANDO" else "PENDIENTE")
         }
 
-        // 1. Fondo de la pastilla
-        holder.container.backgroundTintList = ContextCompat.getColorStateList(ctx, bgColor)
-
-        // 2. Color del texto
-        holder.status.setTextColor(ContextCompat.getColor(ctx, txtColor))
-        holder.status.text = text
-
-        // 3. Color/Drawable del punto
-        holder.dot.setBackgroundResource(dotDrawable)
+        holder.container.backgroundTintList = ContextCompat.getColorStateList(ctx, bg)
+        holder.status.setTextColor(ContextCompat.getColor(ctx, txt))
+        holder.status.text = label
+        holder.dot.setBackgroundResource(dotDraw)
         holder.dot.visibility = View.VISIBLE
     }
+
+    // Clase simple para devolver 4 valores
+    data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 }
