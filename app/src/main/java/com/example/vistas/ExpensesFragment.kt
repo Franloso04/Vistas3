@@ -23,8 +23,8 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
     private lateinit var adapter: GastoAdapter
 
     // Referencias a los botones nuevos
-    private lateinit var btnMode: FloatingActionButton // El pequeño
-    private lateinit var btnAction: ExtendedFloatingActionButton // El grande
+    private lateinit var btnMode: FloatingActionButton
+    private lateinit var btnAction: ExtendedFloatingActionButton
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -41,47 +41,66 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
 
         // Configurar Adapter
         adapter = GastoAdapter(emptyList(), isSelectionMode = false) {
-            actualizarBotonAccion() // Actualizar texto del botón grande al seleccionar
+            actualizarBotonAccion()
         }
 
         recycler.layoutManager = LinearLayoutManager(context)
         recycler.adapter = adapter
 
+        // --- SOLUCIÓN DE RENDIMIENTO (SKIPPED FRAMES) ---
+        recycler.setHasFixedSize(true)
+        recycler.setItemViewCacheSize(20)
+
         viewModel.gastosFiltrados.observe(viewLifecycleOwner) { lista ->
             adapter.updateData(lista)
         }
 
-        // --- LISTENERS DE LOS BOTONES ---
+        // --- LISTENERS ---
 
-        // 1. Botón Pequeño (Cambia de modo)
         btnMode.setOnClickListener {
             val nuevoModo = !adapter.isSelectionMode
             adapter.activarModoSeleccion(nuevoModo)
             actualizarInterfazModo(nuevoModo)
         }
 
-        // 2. Botón Grande (Acción variable)
         btnAction.setOnClickListener {
             if (adapter.isSelectionMode) {
-                // MODO SELECCIÓN -> Acción: ELIMINAR
                 ejecutarEliminacion()
             } else {
-                // MODO NORMAL -> Acción: ESCANEAR
                 findNavController().navigate(R.id.ocrFragment)
             }
         }
 
-        // Filtros (Igual que antes)
+        // Filtros
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { viewModel.filtrarPorTexto(s.toString()) }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
-        chipCategoria.setOnClickListener { setupChipPopup(chipCategoria, listOf("Todas", "Comida", "Transporte", "Alojamiento", "Suministros")) { viewModel.filtrarPorCategoria(it) } }
-        chipEstado.setOnClickListener { setupChipPopup(chipEstado, listOf("Todos", "APROBADO", "PENDIENTE", "RECHAZADO", "PROCESANDO")) { viewModel.filtrarPorEstado(it) } }
-        chipFechas.setOnClickListener { val popup = PopupMenu(requireContext(), chipFechas); popup.menu.add("Más recientes"); popup.menu.add("Más antiguos"); popup.setOnMenuItemClickListener { viewModel.ordenarPorFecha(it.title == "Más recientes"); true }; popup.show() }
 
-        // Estado inicial
+        chipCategoria.setOnClickListener {
+            setupChipPopup(chipCategoria, listOf("Todas", "Comida", "Transporte", "Alojamiento", "Suministros")) {
+                viewModel.filtrarPorCategoria(it)
+            }
+        }
+
+        chipEstado.setOnClickListener {
+            setupChipPopup(chipEstado, listOf("Todos", "APROBADO", "PENDIENTE", "RECHAZADO", "PROCESANDO")) {
+                viewModel.filtrarPorEstado(it)
+            }
+        }
+
+        chipFechas.setOnClickListener {
+            val popup = PopupMenu(requireContext(), chipFechas)
+            popup.menu.add("Más recientes")
+            popup.menu.add("Más antiguos")
+            popup.setOnMenuItemClickListener {
+                viewModel.ordenarPorFecha(it.title == "Más recientes")
+                true
+            }
+            popup.show()
+        }
+
         actualizarInterfazModo(false)
     }
 
@@ -89,26 +108,15 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
         val context = requireContext()
 
         if (esModoSeleccion) {
-            // --- ESTADO: SELECCIONANDO ---
-
-            // Botón Pequeño: Se convierte en "Cancelar" (X)
             btnMode.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-
-            // Botón Grande: Se convierte en "Eliminar" (Rojo)
             btnAction.text = "Eliminar"
             btnAction.icon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_delete)
-            btnAction.backgroundTintList = ContextCompat.getColorStateList(context, R.color.status_rejected_text) // Rojo
-            btnAction.shrink() // Empezamos encogido hasta que seleccione algo (opcional, o extendido "Eliminar (0)")
+            btnAction.backgroundTintList = ContextCompat.getColorStateList(context, R.color.status_rejected_text)
+            btnAction.shrink()
             btnAction.extend()
             actualizarBotonAccion()
-
         } else {
-            // --- ESTADO: NORMAL ---
-
-            // Botón Pequeño: Se convierte en "Editar/Seleccionar" (Lápiz)
             btnMode.setImageResource(android.R.drawable.ic_menu_edit)
-
-            // Botón Grande: Se convierte en "Escanear" (Azul)
             btnAction.text = "Escanear"
             btnAction.icon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_camera)
             btnAction.backgroundTintList = ContextCompat.getColorStateList(context, R.color.primary_blue)
@@ -118,14 +126,12 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
 
     private fun actualizarBotonAccion() {
         if (!adapter.isSelectionMode) return
-
         val count = adapter.getSelectedCount()
         if (count > 0) {
             btnAction.text = "Eliminar ($count)"
             btnAction.show()
         } else {
             btnAction.text = "Eliminar"
-            // Opcional: btnAction.hide() si quieres que desaparezca cuando no hay nada seleccionado
         }
     }
 
@@ -139,7 +145,6 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             .setPositiveButton("Eliminar") { _, _ ->
                 val ids = adapter.getSelectedIds()
                 viewModel.eliminarGastosSeleccionados(ids)
-
                 adapter.activarModoSeleccion(false)
                 actualizarInterfazModo(false)
             }
@@ -150,10 +155,16 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
     private fun setupChipPopup(chip: Chip, items: List<String>, onSelect: (String) -> Unit) {
         val popup = PopupMenu(requireContext(), chip)
         items.forEach { popup.menu.add(it) }
-        popup.setOnMenuItemClickListener {
-            val selected = it.title.toString()
+
+        popup.setOnMenuItemClickListener { menuItem ->
+            val selected = menuItem.title.toString()
             onSelect(selected)
-            chip.text = if (selected == items[0]) chip.tag.toString() else selected
+            // Si chip.tag es nulo, usamos el texto seleccionado en su lugar para no crashear.
+            if (selected == items[0]) {
+                chip.text = chip.tag?.toString() ?: selected
+            } else {
+                chip.text = selected
+            }
             true
         }
         popup.show()
