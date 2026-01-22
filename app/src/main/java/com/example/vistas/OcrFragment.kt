@@ -4,7 +4,7 @@ import android.app.DatePickerDialog
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView // Importante
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
@@ -19,8 +19,7 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
 
-// Asegúrate de que el layout sea el correcto (screen_val_tick o fragment_ocr_validation)
-class OcrFragment : Fragment(R.layout.screen_val_tick) {
+class OcrFragment : Fragment(R.layout.fragment_ocr_validation) {
 
     private val viewModel: MainViewModel by activityViewModels()
     private val calendar = Calendar.getInstance()
@@ -32,30 +31,23 @@ class OcrFragment : Fragment(R.layout.screen_val_tick) {
         val editNombre = view.findViewById<EditText>(R.id.editNombre)
         val editFecha = view.findViewById<TextInputEditText>(R.id.editFecha)
         val editMonto = view.findViewById<EditText>(R.id.editMonto)
-
-        // CAMBIO: Usamos AutoCompleteTextView en lugar de Spinner
         val menuCategoria = view.findViewById<AutoCompleteTextView>(R.id.autoCompleteCategoria)
-
         val btnConfirmar = view.findViewById<Button>(R.id.btnConfirmar)
         val btnDescartar = view.findViewById<Button>(R.id.btnDescartar)
 
         // Seguridad
-        if (editNombre == null || menuCategoria == null) {
-            return // Evita crash si la vista no cargó bien
+        if (editNombre == null || menuCategoria == null || editFecha == null || editMonto == null) {
+            return 
         }
 
         // 2. LÓGICA FECHA
         actualizarCampoFecha(editFecha)
         editFecha.setOnClickListener { mostrarSelectorFecha(editFecha) }
 
-        // 3. CONFIGURAR MENÚ DE CATEGORÍAS (MODO OSCURO FIX)
+        // 3. CONFIGURAR MENÚ DE CATEGORÍAS
         val categorias = listOf("Comida", "Transporte", "Alojamiento", "Suministros", "Equipamiento")
-
-        // Usamos el layout personalizado 'item_dropdown_category' para que el texto se vea bien
         val adapter = ArrayAdapter(requireContext(), R.layout.item_dropdown_category, categorias)
         menuCategoria.setAdapter(adapter)
-
-        // Evita que el teclado salga al pulsar la categoría
         menuCategoria.keyListener = null
 
         // 4. CONFIRMAR
@@ -63,8 +55,6 @@ class OcrFragment : Fragment(R.layout.screen_val_tick) {
             val nombre = editNombre.text.toString()
             val montoStr = editMonto.text.toString().replace("$", "").replace(",", ".").trim()
             val monto = montoStr.toDoubleOrNull() ?: 0.0
-
-            // Obtenemos el texto directamente del menú (ya no es selectedItem)
             val categoriaSeleccionada = menuCategoria.text.toString()
 
             if (nombre.isNotBlank() && monto > 0.0) {
@@ -72,7 +62,7 @@ class OcrFragment : Fragment(R.layout.screen_val_tick) {
                     id = UUID.randomUUID().toString(),
                     nombreComercio = nombre,
                     fecha = editFecha.text.toString(),
-                    categoria = categoriaSeleccionada, // Usamos la variable nueva
+                    categoria = categoriaSeleccionada,
                     monto = monto,
                     estado = EstadoGasto.PROCESANDO,
                     timestamp = calendar.timeInMillis
