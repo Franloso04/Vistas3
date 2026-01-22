@@ -16,7 +16,7 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
 
     // Inicializamos tarde para evitar problemas de nulos
     private lateinit var adapterGastos: AdminAdapter
-    private lateinit var adapterReportes: ReporteAdapter
+    private lateinit var adapterReportes: ReportAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -37,7 +37,7 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
         // 2. Configurar Recycler de Reportes (Incidencias)
         val recyclerReportes = view.findViewById<RecyclerView>(R.id.recyclerReportes)
         recyclerReportes.layoutManager = LinearLayoutManager(context)
-        adapterReportes = ReporteAdapter(emptyList())
+        adapterReportes = ReportAdapter(emptyList())
         recyclerReportes.adapter = adapterReportes
 
         // 3. Observar Datos
