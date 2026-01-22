@@ -42,7 +42,10 @@ class LoginFragment : Fragment(R.layout.screen_log_empl) {
                         navegarAlDestino()
                     }
                     .addOnFailureListener {
-                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                        // Comprobamos si el fragmento sigue activo antes de mostrar el Toast
+                        if (isAdded) {
+                            Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
+                        }
                     }
             } else {
                 Toast.makeText(context, "Rellena los campos", Toast.LENGTH_SHORT).show()
@@ -51,6 +54,12 @@ class LoginFragment : Fragment(R.layout.screen_log_empl) {
     }
 
     private fun navegarAlDestino() {
+        // --- PROTECCIÓN CONTRA CRASHES ---
+        // Si por lo que sea el fragmento ya no es parte de la pantalla
+        // (porque el usuario se salió o la app se pausó), no hacemos nada.
+        if (!isAdded || activity == null) return
+        // ---------------------------------
+
         // Navega siempre al dashboard, el ViewModel ya sabe si eres admin o no
         // y cargará los datos correspondientes.
         findNavController().navigate(R.id.action_login_to_dashboard)
