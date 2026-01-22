@@ -1,28 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="24dp"
-    android:background="@color/bg_app"
-    android:gravity="center_horizontal">
+    android:background="@color/bg_app">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Ajustes"
-        android:textSize="24sp"
+        android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="@color/text_main"
-        android:layout_marginBottom="40dp"/>
+        android:layout_marginBottom="32dp"/>
 
     <androidx.cardview.widget.CardView
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
         app:cardBackgroundColor="@color/surface_card"
-        app:cardElevation="2dp"
         android:layout_marginBottom="24dp">
 
         <LinearLayout
@@ -34,19 +33,19 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cuenta Actual"
+                android:text="Cuenta"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp"
-                android:textColor="@color/text_secondary"/>
+                android:layout_marginBottom="4dp"/>
 
             <TextView
                 android:id="@+id/txtCurrentUser"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="cargando..."
+                android:text="usuario@email.com"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@color/text_main"
-                android:layout_marginTop="4dp"/>
+                android:textColor="@color/text_main"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -55,7 +54,6 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="12dp"
         android:layout_marginBottom="24dp">
 
         <TextView
@@ -63,7 +61,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Modo Oscuro"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textColor="@color/text_main"/>
 
         <com.google.android.material.materialswitch.MaterialSwitch
@@ -72,25 +70,44 @@
             android:layout_height="wrap_content"/>
     </LinearLayout>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Soporte y Ayuda"
+        android:textColor="@color/text_secondary"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"
+        android:layout_marginTop="12dp"/>
+
+    <Button
+        android:id="@+id/btnSupport"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Reportar Incidencia / Ayuda"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_marginBottom="8dp"
+        android:drawableStart="@android:drawable/ic_dialog_email"
+        android:drawablePadding="8dp"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
     <Button
         android:id="@+id/btnAdminPanel"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:text="Panel de Administrador"
-        android:backgroundTint="#2563EB"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textSize="16sp"
         android:visibility="gone"
-        android:layout_marginBottom="16dp"/>
+        android:backgroundTint="#475569"
+        android:layout_marginBottom="12dp"/>
+
     <Button
         android:id="@+id/btnLogout"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:text="Cerrar Sesión"
-        android:backgroundTint="#B91C1C"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textSize="16sp"/>
+        android:backgroundTint="@color/status_rejected_text"/>
 
 </LinearLayout>

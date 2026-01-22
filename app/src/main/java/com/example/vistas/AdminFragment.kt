@@ -3,68 +3,70 @@ package com.example.vistas
 import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
-import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.vistas.model.EstadoGasto
+import com.example.vistas.model.Gasto
 
 class AdminFragment : Fragment(R.layout.screen_admin) {
 
     private val viewModel: MainViewModel by activityViewModels()
-    private lateinit var adapter: AdminAdapter
+
+    // Inicializamos tarde para evitar problemas de nulos
+    private lateinit var adapterGastos: AdminAdapter
+    private lateinit var adapterReportes: ReporteAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val recycler = view.findViewById<RecyclerView>(R.id.recyclerAdmin)
-        val txtEmpty = view.findViewById<TextView>(R.id.txtEmptyState)
+        // 1. Configurar Recycler de Gastos Pendientes
+        val recyclerGastos = view.findViewById<RecyclerView>(R.id.recyclerPendientes)
+        recyclerGastos.layoutManager = LinearLayoutManager(context)
 
-        // AHORA ESTO FUNCIONARÁ PORQUE EL ADAPTER YA ESPERA 'onEliminar'
-        adapter = AdminAdapter(
+        // AQUÍ ESTABA EL ERROR: Faltaba pasar la función de eliminar
+        adapterGastos = AdminAdapter(
             lista = emptyList(),
-            onAprobar = { gasto ->
-                viewModel.aprobarGasto(gasto.id)
-                Toast.makeText(context, "Ticket Aprobado", Toast.LENGTH_SHORT).show()
-            },
-            onRechazar = { gasto ->
-                viewModel.rechazarGasto(gasto.id)
-                Toast.makeText(context, "Ticket Rechazado", Toast.LENGTH_SHORT).show()
-            },
-            onEliminar = { gasto ->
-                AlertDialog.Builder(requireContext())
-                    .setTitle("Eliminar Ticket")
-                    .setMessage("¿Estás seguro de borrar este ticket permanentemente?")
-                    .setPositiveButton("Borrar") { _, _ ->
-                        viewModel.eliminarGastoIndividual(gasto.id)
-                        Toast.makeText(context, "Eliminado", Toast.LENGTH_SHORT).show()
-                    }
-                    .setNegativeButton("Cancelar", null)
-                    .show()
-            }
+            onAprobar = { gasto -> intentarAprobar(gasto) },
+            onRechazar = { gasto -> viewModel.rechazarGasto(gasto.id) },
+            onEliminar = { gasto -> viewModel.eliminarGastoIndividual(gasto.id) } // <--- ¡AÑADIDO!
         )
+        recyclerGastos.adapter = adapterGastos
 
-        recycler.layoutManager = LinearLayoutManager(context)
-        recycler.adapter = adapter
+        // 2. Configurar Recycler de Reportes (Incidencias)
+        val recyclerReportes = view.findViewById<RecyclerView>(R.id.recyclerReportes)
+        recyclerReportes.layoutManager = LinearLayoutManager(context)
+        adapterReportes = ReporteAdapter(emptyList())
+        recyclerReportes.adapter = adapterReportes
 
-        // Observar datos del ViewModel
+        // 3. Observar Datos
         viewModel.gastosGlobales.observe(viewLifecycleOwner) { lista ->
-            // Filtramos solo pendientes/procesando para el admin
-            val pendientes = lista.filter {
-                it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
-            }
-            adapter.updateData(pendientes)
+            // Filtramos solo los pendientes para el admin
+            val pendientes = lista.filter { it.estado.name == "PENDIENTE" || it.estado.name == "PROCESANDO" }
+            adapterGastos.updateList(pendientes) // Ahora sí funcionará
+        }
 
-            if (pendientes.isEmpty()) {
-                recycler.visibility = View.GONE
-                txtEmpty?.visibility = View.VISIBLE
-                txtEmpty?.text = "No hay solicitudes pendientes."
-            } else {
-                recycler.visibility = View.VISIBLE
-                txtEmpty?.visibility = View.GONE
-            }
+        viewModel.reportes.observe(viewLifecycleOwner) { lista ->
+            adapterReportes.updateList(lista)
+        }
+    }
+
+    private fun intentarAprobar(gasto: Gasto) {
+        val incidencia = viewModel.tieneIncidencia(gasto.id)
+
+        if (incidencia != null) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("⚠️ ¡Atención!")
+                .setMessage("Este ticket tiene una incidencia:\n'${incidencia.descripcion}'\n\n¿Aprobar de todas formas?")
+                .setPositiveButton("Aprobar") { _, _ ->
+                    viewModel.aprobarGasto(gasto.id)
+                    Toast.makeText(context, "Aprobado manualmente", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        } else {
+            viewModel.aprobarGasto(gasto.id)
         }
     }
 }

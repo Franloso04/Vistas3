@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import com.example.vistas.data.FirestoreRepository
 import com.example.vistas.model.EstadoGasto
 import com.example.vistas.model.Gasto
+import com.example.vistas.model.Reporte // Asegúrate de tener este import
 import com.google.firebase.auth.FirebaseAuth
 
 class MainViewModel : ViewModel() {
@@ -22,14 +23,18 @@ class MainViewModel : ViewModel() {
     private val _gastosFiltrados = MutableLiveData<List<Gasto>>()
     val gastosFiltrados: LiveData<List<Gasto>> = _gastosFiltrados
 
-    // 3. TOTALES (Globales para Admin, Personales para Empleado)
+    // 3. REPORTES (NUEVO: Para que el Admin vea las incidencias)
+    private val _reportes = MutableLiveData<List<Reporte>>()
+    val reportes: LiveData<List<Reporte>> = _reportes
+
+    // 4. TOTALES (Globales para Admin, Personales para Empleado)
     private val _totalMes = MutableLiveData<Double>()
     val totalMes: LiveData<Double> = _totalMes
 
     private val _totalPendiente = MutableLiveData<Double>()
     val totalPendiente: LiveData<Double> = _totalPendiente
 
-    // 4. ESTADÍSTICAS (Para los gráficos del Dashboard)
+    // 5. ESTADÍSTICAS (Para los gráficos del Dashboard)
     private val _statsCategorias = MutableLiveData<Map<String, Double>>()
     val statsCategorias: LiveData<Map<String, Double>> = _statsCategorias
 
@@ -69,6 +74,11 @@ class MainViewModel : ViewModel() {
         // Si es Admin descargamos TODO para poder calcular los totales de la empresa
         if (isAdmin) {
             repository.getAllGastos(callback)
+
+            // NUEVO: Si es admin, también descargamos los reportes de incidencias
+            repository.getReportes { listaReportes ->
+                _reportes.value = listaReportes
+            }
         } else {
             repository.getMyGastos(userId, callback)
         }
@@ -85,6 +95,31 @@ class MainViewModel : ViewModel() {
     fun aprobarGasto(id: String) { if (isAdmin) repository.updateEstado(id, EstadoGasto.APROBADO) }
     fun rechazarGasto(id: String) { if (isAdmin) repository.updateEstado(id, EstadoGasto.RECHAZADO) }
     fun eliminarGastoIndividual(id: String) { repository.deleteGasto(id) }
+
+    // --- NUEVO: FUNCIÓN AUXILIAR PARA VERIFICAR INCIDENCIAS ---
+    fun tieneIncidencia(gastoId: String): Reporte? {
+        return _reportes.value?.find { it.gastoId == gastoId }
+    }
+
+    // --- ACCIÓN REPORTE (USUARIO) ---
+    fun enviarReporteFirebase(gasto: Gasto, descripcion: String) {
+        val user = auth.currentUser ?: return
+
+        // Creamos un mapa con todos los datos necesarios
+        val reporteMap = hashMapOf(
+            "userId" to user.uid,
+            "emailUsuario" to (user.email ?: "Desconocido"),
+            "gastoId" to gasto.id,
+            "comercio" to gasto.nombreComercio,
+            "monto" to gasto.monto,
+            "descripcion" to descripcion,
+            "fechaReporte" to System.currentTimeMillis(), // Fecha de hoy en milisegundos
+            "estado" to "PENDIENTE" // Estado inicial del reporte
+        )
+
+        // Llamamos al repositorio
+        repository.addReporte(reporteMap)
+    }
 
     // --- CÁLCULOS Y ACTUALIZACIÓN ---
     private fun actualizarUI() {
@@ -108,7 +143,7 @@ class MainViewModel : ViewModel() {
         aplicarFiltros()
     }
 
-    // --- LÓGICA DE FILTROS (MODIFICADA) ---
+    // --- LÓGICA DE FILTROS ---
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
     fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
@@ -118,13 +153,10 @@ class MainViewModel : ViewModel() {
         var res = listaMaestra
         val currentUid = auth.currentUser?.uid
 
-        // --- CAMBIO CLAVE: SIEMPRE FILTRAR POR USUARIO EN EL HISTORIAL ---
-        // Aunque seas Admin y 'listaMaestra' tenga todo, para la pantalla de historial
-        // solo queremos ver TUS gastos.
+        // --- CLAVE: SIEMPRE FILTRAR POR USUARIO EN EL HISTORIAL ---
         if (currentUid != null) {
             res = res.filter { it.userId == currentUid }
         }
-        // ------------------------------------------------------------------
 
         // Filtro Texto
         if (busquedaActual.isNotEmpty()) {

@@ -7,29 +7,64 @@
     android:padding="16dp">
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Solicitudes Pendientes"
+        android:text="Panel de Administración"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="@color/text_main"
         android:layout_marginBottom="16dp"/>
 
-    <TextView
-        android:id="@+id/txtEmptyState"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Cargando..."
-        android:gravity="center"
-        android:layout_marginTop="50dp"
-        android:textSize="16sp"
-        android:visibility="gone"/>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerAdmin"
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Validaciones Pendientes"
+            android:textStyle="bold"
+            android:textColor="@color/primary_blue"
+            android:layout_marginBottom="8dp"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerPendientes"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical"
+            android:clipToPadding="false"/>
+    </LinearLayout>
+
+    <View
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingBottom="20dp"/>
+        android:layout_height="1dp"
+        android:background="#CCCCCC"
+        android:layout_marginVertical="12dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Incidencias Reportadas"
+            android:textStyle="bold"
+            android:textColor="@color/status_rejected_text"
+            android:layout_marginBottom="8dp"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerReportes"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical"
+            android:clipToPadding="false"
+            android:background="@drawable/bg_item_rounded"
+            android:padding="4dp"/>
+    </LinearLayout>
 
 </LinearLayout>
