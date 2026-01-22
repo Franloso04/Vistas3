@@ -4,7 +4,7 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView // IMPORTANTE: Nuevo import
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -26,11 +26,10 @@ class GastoAdapter(
         val info: TextView = view.findViewById(R.id.txtInfo)
         val monto: TextView = view.findViewById(R.id.txtMonto)
 
-        // NUEVO: Referencia al icono
-        // Asegúrate de ponerle android:id="@+id/imgIcono" a la ImageView en tu XML item_gasto
+        // Referencia a la imagen del icono
         val icono: ImageView = view.findViewById(R.id.imgIcono)
 
-        // Elementos de la Pastilla
+        // Elementos de la Pastilla de estado
         val container: LinearLayout = view.findViewById(R.id.layoutStatus)
         val status: TextView = view.findViewById(R.id.txtStatus)
         val dot: View = view.findViewById(R.id.dotStatus)
@@ -45,39 +44,41 @@ class GastoAdapter(
         val gasto = lista[position]
         val ctx = holder.itemView.context
 
-        // Datos básicos
+        // 1. Datos de Texto
         holder.comercio.text = gasto.nombreComercio
         holder.info.text = "${gasto.fecha} • ${gasto.categoria}"
         holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
-        // --- LÓGICA DE ICONOS DINÁMICOS ---
+        // 2. LÓGICA DE ICONOS (AQUÍ ESTÁ EL CAMBIO)
         val iconRes = when (gasto.categoria) {
             "Comida" -> R.drawable.ic_food
             "Transporte" -> R.drawable.ic_transport
             "Alojamiento" -> R.drawable.ic_hotel
             "Suministros" -> R.drawable.ic_supply
-            else -> R.drawable.bg_icon_placeholder // Icono por defecto si no coincide
+            "Equipamiento" -> R.drawable.ic_equip // <--- ¡NUEVA LÍNEA AÑADIDA!
+            else -> R.drawable.bg_icon_placeholder
         }
         holder.icono.setImageResource(iconRes)
 
-        // Diseño de la pastilla de estado
+        // 3. Diseño de la pastilla de estado
         configurarEstado(holder, gasto)
 
-        // --- LÓGICA DE SELECCIÓN ---
+        // 4. Lógica de Selección y Colores
         val colorNormal = ContextCompat.getColor(ctx, R.color.surface_card)
         val colorSeleccionado = adjustAlpha(ContextCompat.getColor(ctx, R.color.primary_blue), 0.2f)
 
         if (isSelectionMode) {
             if (gasto.estado == EstadoGasto.APROBADO) {
+                // Bloqueado
                 holder.card.setCardBackgroundColor(colorNormal)
                 holder.itemView.alpha = 0.5f
                 holder.itemView.scaleX = 1f
                 holder.itemView.scaleY = 1f
-
                 holder.itemView.setOnClickListener {
                     Toast.makeText(ctx, "No puedes borrar gastos aprobados", Toast.LENGTH_SHORT).show()
                 }
             } else {
+                // Seleccionable
                 holder.itemView.alpha = 1f
                 if (gasto.isSelected) {
                     holder.card.setCardBackgroundColor(colorSeleccionado)
@@ -96,6 +97,7 @@ class GastoAdapter(
                 }
             }
         } else {
+            // Modo Normal
             holder.card.setCardBackgroundColor(colorNormal)
             holder.itemView.alpha = 1f
             holder.itemView.scaleX = 1f
