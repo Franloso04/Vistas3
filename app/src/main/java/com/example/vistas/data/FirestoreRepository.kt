@@ -155,9 +155,15 @@ class FirestoreRepository {
         collection.document(gastoId).delete()
     }
 
-    // Estas funciones son para el chat de reportes (por si las necesitas)
     fun deleteReporte(id: String) {
-        db.collection("reportes").document(id).delete()
+        db.collection("reportes").document(id)
+            .delete()
+            .addOnSuccessListener {
+                android.util.Log.d("FIREBASE", "Reporte eliminado: $id")
+            }
+            .addOnFailureListener {
+                android.util.Log.e("FIREBASE", "Error borrando reporte", it)
+            }
     }
 
 
