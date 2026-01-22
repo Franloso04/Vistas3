@@ -139,7 +139,7 @@ class GastoAdapter(
         val (bg, txt, dotDraw, label) = when (gasto.estado) {
             EstadoGasto.APROBADO -> Quad(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
             EstadoGasto.RECHAZADO -> Quad(R.color.status_rejected_bg, R.color.status_rejected_text, R.drawable.dot_red, "RECHAZADO")
-            else -> Quad(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, if(gasto.estado==EstadoGasto.PROCESANDO) "PROCESANDO" else "PENDIENTE")
+            else -> Quad(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, if(gasto.estado==EstadoGasto.PENDIENTE) "PENDIENTE" else "PENDIENTE")
         }
 
         holder.container.backgroundTintList = ContextCompat.getColorStateList(ctx, bg)

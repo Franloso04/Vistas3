@@ -25,7 +25,7 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
         val recyclerGastos = view.findViewById<RecyclerView>(R.id.recyclerPendientes)
         recyclerGastos.layoutManager = LinearLayoutManager(context)
 
-        // AQUÍ ESTABA EL ERROR: Faltaba pasar la función de eliminar
+
         adapterGastos = AdminAdapter(
             lista = emptyList(),
             onAprobar = { gasto -> intentarAprobar(gasto) },
@@ -43,8 +43,8 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
         // 3. Observar Datos
         viewModel.gastosGlobales.observe(viewLifecycleOwner) { lista ->
             // Filtramos solo los pendientes para el admin
-            val pendientes = lista.filter { it.estado.name == "PENDIENTE" || it.estado.name == "PROCESANDO" }
-            adapterGastos.updateList(pendientes) // Ahora sí funcionará
+            val pendientes = lista.filter { it.estado.name == "PENDIENTE" }
+            adapterGastos.updateList(pendientes)
         }
 
         viewModel.reportes.observe(viewLifecycleOwner) { lista ->

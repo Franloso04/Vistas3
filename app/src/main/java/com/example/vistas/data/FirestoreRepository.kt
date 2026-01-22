@@ -6,13 +6,14 @@ import com.example.vistas.model.Gasto
 import com.example.vistas.model.Reporte
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.DocumentSnapshot
 
 class FirestoreRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val collection = db.collection("gastos")
 
-    // Subir un gasto nuevo
+    // --- SUBIR GASTO ---
     fun addGasto(gasto: Gasto, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         Log.d("FIREBASE", "Intentando subir gasto: ${gasto.nombreComercio}")
         collection.document(gasto.id).set(gasto)
@@ -26,7 +27,7 @@ class FirestoreRepository {
             }
     }
 
-    // TRAER TODO (Para el Admin)
+    // --- TRAER TODO (Admin) CON PROTECCIÓN ANTI-CRASH ---
     fun getAllGastos(onResult: (List<Gasto>) -> Unit) {
         Log.d("FIREBASE", "Pidiendo TODOS los gastos (Admin)")
         collection.orderBy("timestamp", Query.Direction.DESCENDING)
@@ -35,27 +36,35 @@ class FirestoreRepository {
                     Log.e("FIREBASE", "Error descargando todo: ${error.message}")
                     return@addSnapshotListener
                 }
-                val lista = value?.toObjects(Gasto::class.java) ?: emptyList()
+
+                // CAMBIO CLAVE: Mapeo manual para evitar crash por "PROCESANDO"
+                val lista = value?.documents?.mapNotNull { doc ->
+                    mapDocumentToGasto(doc)
+                } ?: emptyList()
+
                 Log.d("FIREBASE", "Descargados ${lista.size} gastos totales")
                 onResult(lista)
             }
     }
 
-    // TRAER SOLO LO MÍO (Para el Empleado)
+    // --- TRAER SOLO LO MÍO (Empleado) CON PROTECCIÓN ANTI-CRASH ---
     fun getMyGastos(userId: String, onResult: (List<Gasto>) -> Unit) {
         Log.d("FIREBASE", "Pidiendo gastos del usuario: $userId")
 
-        // INTENTO 1: Con índice (Ideal)
         collection.whereEqualTo("userId", userId)
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { value, error ->
                 if (error != null) {
-                    Log.e("FIREBASE", "Fallo índice ordenado. Intentando sin orden... Error: ${error.message}")
-                    // INTENTO 2: Sin índice (Fallback para que no se quede vacío)
+                    // Fallback si falla el índice
                     getMyGastosSinOrden(userId, onResult)
                     return@addSnapshotListener
                 }
-                val lista = value?.toObjects(Gasto::class.java) ?: emptyList()
+
+                // CAMBIO CLAVE: Mapeo manual
+                val lista = value?.documents?.mapNotNull { doc ->
+                    mapDocumentToGasto(doc)
+                } ?: emptyList()
+
                 Log.d("FIREBASE", "Descargados ${lista.size} gastos propios")
                 onResult(lista)
             }
@@ -64,10 +73,48 @@ class FirestoreRepository {
     private fun getMyGastosSinOrden(userId: String, onResult: (List<Gasto>) -> Unit) {
         collection.whereEqualTo("userId", userId)
             .addSnapshotListener { value, _ ->
-                val lista = value?.toObjects(Gasto::class.java) ?: emptyList()
-                // Ordenamos manual en la app
+                val lista = value?.documents?.mapNotNull { doc ->
+                    mapDocumentToGasto(doc)
+                } ?: emptyList()
                 onResult(lista.sortedByDescending { it.timestamp })
             }
+    }
+
+    // --- FUNCIÓN DE AYUDA PARA LEER EL GASTO Y ARREGLAR EL "PROCESANDO" ---
+    private fun mapDocumentToGasto(doc: DocumentSnapshot): Gasto? {
+        return try {
+            val data = doc.data ?: return null
+
+            val estadoStr = data["estado"] as? String ?: "PENDIENTE"
+
+            val estadoSeguro = if (estadoStr == "PROCESANDO") {
+                EstadoGasto.PENDIENTE
+            } else {
+                try {
+                    EstadoGasto.valueOf(estadoStr)
+                } catch (e: Exception) {
+                    EstadoGasto.PENDIENTE
+                }
+            }
+
+            Gasto(
+                id = doc.id,
+                // --- AÑADIDO: LEER EL USER ID ---
+                userId = data["userId"] as? String ?: "", // <--- ESTO FALTABA
+
+                nombreComercio = data["nombreComercio"] as? String ?: "",
+                fecha = data["fecha"] as? String ?: "",
+                categoria = data["categoria"] as? String ?: "",
+                monto = (data["monto"] as? Number)?.toDouble() ?: 0.0,
+                emailUsuario = data["emailUsuario"] as? String ?: "",
+                imagenUrl = data["imagenUrl"] as? String ?: "",
+                timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L,
+                estado = estadoSeguro
+            )
+        } catch (e: Exception) {
+            Log.e("FIREBASE", "Error leyendo gasto: ${doc.id}", e)
+            null
+        }
     }
 
     // --- REPORTES ---
@@ -75,12 +122,8 @@ class FirestoreRepository {
     fun addReporte(reporte: Map<String, Any>) {
         db.collection("reportes")
             .add(reporte)
-            .addOnSuccessListener {
-                Log.d("Firebase", "Reporte guardado con éxito")
-            }
-            .addOnFailureListener { e ->
-                Log.e("Firebase", "Error al guardar reporte", e)
-            }
+            .addOnSuccessListener { Log.d("Firebase", "Reporte guardado") }
+            .addOnFailureListener { e -> Log.e("Firebase", "Error reporte", e) }
     }
 
     fun getReportes(onSuccess: (List<Reporte>) -> Unit) {
@@ -99,27 +142,23 @@ class FirestoreRepository {
                 }
                 onSuccess(lista)
             }
-            .addOnFailureListener {
-                // Si falla, devolvemos lista vacía para que no se cuelgue
-                onSuccess(emptyList())
-            }
-    } // <--- ¡AQUÍ FALTABA ESTA LLAVE DE CIERRE!
+            .addOnFailureListener { onSuccess(emptyList()) }
+    }
 
-    // --- EDICIÓN Y BORRADO (NECESARIOS PARA EL VIEWMODEL) ---
+    // --- ACCIONES DE ADMIN (NECESARIAS PARA QUE NO DE ERROR EL VIEWMODEL) ---
 
     fun updateEstado(gastoId: String, nuevoEstado: EstadoGasto) {
-        collection.document(gastoId)
-            .update("estado", nuevoEstado)
-            .addOnFailureListener { e ->
-                Log.e("Firestore", "Error al actualizar estado", e)
-            }
+        collection.document(gastoId).update("estado", nuevoEstado)
     }
 
     fun deleteGasto(gastoId: String) {
-        collection.document(gastoId)
-            .delete()
-            .addOnFailureListener { e ->
-                Log.e("Firestore", "Error al eliminar gasto", e)
-            }
+        collection.document(gastoId).delete()
     }
+
+    // Estas funciones son para el chat de reportes (por si las necesitas)
+    fun deleteReporte(id: String) {
+        db.collection("reportes").document(id).delete()
+    }
+
+
 }

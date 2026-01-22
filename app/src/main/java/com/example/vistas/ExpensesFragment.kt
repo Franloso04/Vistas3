@@ -85,7 +85,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
         }
 
         chipEstado.setOnClickListener {
-            setupChipPopup(chipEstado, listOf("Todos", "APROBADO", "PENDIENTE", "RECHAZADO", "PROCESANDO")) {
+            setupChipPopup(chipEstado, listOf("Todos", "APROBADO", "PENDIENTE", "RECHAZADO")) {
                 viewModel.filtrarPorEstado(it)
             }
         }

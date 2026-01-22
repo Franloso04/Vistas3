@@ -129,7 +129,7 @@ class MainViewModel : ViewModel() {
         // 2. Calculamos Totales (Si es Admin, esto suma toda la empresa)
         _totalMes.value = listaMaestra.sumOf { it.monto }
         _totalPendiente.value = listaMaestra.filter {
-            it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
+            it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PENDIENTE
         }.sumOf { it.monto }
 
         // 3. Estadísticas para Gráficos

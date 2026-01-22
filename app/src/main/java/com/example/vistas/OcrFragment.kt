@@ -11,9 +11,10 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import com.example.vistas.model.EstadoGasto
+import com.example.vistas.model.EstadoGasto // Asegúrate de importar esto
 import com.example.vistas.model.Gasto
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.auth.FirebaseAuth // <--- IMPORTANTE
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -35,16 +36,13 @@ class OcrFragment : Fragment(R.layout.fragment_ocr_validation) {
         val btnConfirmar = view.findViewById<Button>(R.id.btnConfirmar)
         val btnDescartar = view.findViewById<Button>(R.id.btnDescartar)
 
-        // Seguridad
-        if (editNombre == null || menuCategoria == null || editFecha == null || editMonto == null) {
-            return 
-        }
+        if (editNombre == null || menuCategoria == null || editFecha == null || editMonto == null) return
 
         // 2. LÓGICA FECHA
         actualizarCampoFecha(editFecha)
         editFecha.setOnClickListener { mostrarSelectorFecha(editFecha) }
 
-        // 3. CONFIGURAR MENÚ DE CATEGORÍAS
+        // 3. CONFIGURAR MENÚ
         val categorias = listOf("Comida", "Transporte", "Alojamiento", "Suministros", "Equipamiento")
         val adapter = ArrayAdapter(requireContext(), R.layout.item_dropdown_category, categorias)
         menuCategoria.setAdapter(adapter)
@@ -57,6 +55,11 @@ class OcrFragment : Fragment(R.layout.fragment_ocr_validation) {
             val monto = montoStr.toDoubleOrNull() ?: 0.0
             val categoriaSeleccionada = menuCategoria.text.toString()
 
+            // --- AÑADIDO: OBTENER USUARIO ACTUAL ---
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            val myUid = currentUser?.uid ?: ""
+            val myEmail = currentUser?.email ?: ""
+
             if (nombre.isNotBlank() && monto > 0.0) {
                 val nuevoGasto = Gasto(
                     id = UUID.randomUUID().toString(),
@@ -64,8 +67,13 @@ class OcrFragment : Fragment(R.layout.fragment_ocr_validation) {
                     fecha = editFecha.text.toString(),
                     categoria = categoriaSeleccionada,
                     monto = monto,
-                    estado = EstadoGasto.PROCESANDO,
-                    timestamp = calendar.timeInMillis
+                    timestamp = calendar.timeInMillis,
+                    imagenUrl = "",
+                    estado = EstadoGasto.PENDIENTE, // Asegura el estado inicial
+
+                    // --- AÑADIDO: GUARDAR QUIÉN LO CREÓ ---
+                    userId = myUid,
+                    emailUsuario = myEmail
                 )
 
                 viewModel.agregarGasto(nuevoGasto)
@@ -76,12 +84,10 @@ class OcrFragment : Fragment(R.layout.fragment_ocr_validation) {
             }
         }
 
-        // 5. DESCARTAR
-        btnDescartar?.setOnClickListener {
-            findNavController().popBackStack()
-        }
+        btnDescartar?.setOnClickListener { findNavController().popBackStack() }
     }
 
+    // ... (resto de funciones de fecha igual) ...
     private fun mostrarSelectorFecha(editText: EditText) {
         val datePickerDialog = DatePickerDialog(
             requireContext(),
