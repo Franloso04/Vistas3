@@ -3,26 +3,20 @@ package com.example.vistas
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton // Importante
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.vistas.model.Reporte
 
 class ReportAdapter(
     private var lista: List<Reporte>,
-    // CALLBACKS: Funciones que se ejecutarán al pulsar los botones
-    private val onResponder: (Reporte) -> Unit,
     private val onEliminar: (Reporte) -> Unit
 ) : RecyclerView.Adapter<ReportAdapter.VH>() {
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
-        // Textos
         val txtComercio: TextView = v.findViewById(R.id.txtReporteComercio)
         val txtDesc: TextView = v.findViewById(R.id.txtReporteDesc)
         val txtUser: TextView = v.findViewById(R.id.txtReporteUser)
-
-        // Botones de acción (Deben existir en tu item_reporte.xml)
-        val btnResponder: ImageButton = v.findViewById(R.id.btnResponderReporte)
         val btnEliminar: ImageButton = v.findViewById(R.id.btnEliminarReporte)
     }
 
@@ -38,12 +32,6 @@ class ReportAdapter(
         holder.txtDesc.text = rep.descripcion
         holder.txtUser.text = rep.emailUsuario
 
-        // Configurar clic en el botón RESPONDER (Verde)
-        holder.btnResponder.setOnClickListener {
-            onResponder(rep)
-        }
-
-        // Configurar clic en el botón ELIMINAR (Papelera)
         holder.btnEliminar.setOnClickListener {
             onEliminar(rep)
         }

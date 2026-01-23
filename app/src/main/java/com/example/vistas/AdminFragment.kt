@@ -3,7 +3,6 @@ package com.example.vistas
 import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
-import android.widget.EditText // Importante para el diálogo
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -38,17 +37,14 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
         val recyclerReportes = view.findViewById<RecyclerView>(R.id.recyclerReportes)
         recyclerReportes.layoutManager = LinearLayoutManager(context)
 
-        // AQUÍ CONFIGURAMOS LAS ACCIONES DE LOS REPORTES
         adapterReportes = ReportAdapter(
             lista = emptyList(),
-            onResponder = { reporte -> mostrarDialogoRespuesta(reporte) }, // Acción botón VERDE
-            onEliminar = { reporte -> confirmarEliminarReporte(reporte) } // Acción botón ROJO/PAPELERA
+            onEliminar = { reporte -> confirmarEliminarReporte(reporte) } // Solo dejamos eliminar
         )
         recyclerReportes.adapter = adapterReportes
 
         // 3. Observar Datos
         viewModel.gastosGlobales.observe(viewLifecycleOwner) { lista ->
-            // Filtramos solo los pendientes para el admin
             val pendientes = lista.filter { it.estado.name == "PENDIENTE" }
             adapterGastos.updateList(pendientes)
         }
@@ -58,7 +54,6 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
         }
     }
 
-    // --- FUNCIÓN PARA BORRAR REPORTE ---
     private fun confirmarEliminarReporte(reporte: Reporte) {
         AlertDialog.Builder(requireContext())
             .setTitle("¿Eliminar reporte?")
@@ -66,26 +61,6 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
             .setPositiveButton("Eliminar") { _, _ ->
                 viewModel.eliminarReporte(reporte.id)
                 Toast.makeText(context, "Reporte eliminado", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    // --- FUNCIÓN PARA RESPONDER REPORTE ---
-    private fun mostrarDialogoRespuesta(reporte: Reporte) {
-        val input = EditText(requireContext())
-        input.hint = "Escribe tu respuesta aquí..."
-        input.setPadding(50, 50, 50, 50)
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("Responder a ${reporte.emailUsuario}")
-            .setView(input)
-            .setPositiveButton("Enviar") { _, _ ->
-                val texto = input.text.toString()
-                if (texto.isNotEmpty()) {
-                    viewModel.responderReporte(reporte.id, texto)
-                    Toast.makeText(context, "Respuesta enviada", Toast.LENGTH_SHORT).show()
-                }
             }
             .setNegativeButton("Cancelar", null)
             .show()

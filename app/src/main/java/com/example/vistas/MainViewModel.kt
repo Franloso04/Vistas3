@@ -14,7 +14,6 @@ class MainViewModel : ViewModel() {
     private val repository = FirestoreRepository()
     private val auth = FirebaseAuth.getInstance()
 
-    // --- LIVE DATA ---
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
@@ -36,11 +35,9 @@ class MainViewModel : ViewModel() {
     private val _statsEmpleados = MutableLiveData<Map<String, Double>>()
     val statsEmpleados: LiveData<Map<String, Double>> = _statsEmpleados
 
-    // --- VARIABLES INTERNAS ---
     private var listaMaestra: List<Gasto> = emptyList()
     var isAdmin = false
 
-    // Filtros
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
@@ -76,7 +73,14 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    // --- ACCIONES GASTOS ---
+    // ACTUALIZADO: Función que recibe Bytes para mayor robustez
+    fun subirImagenTicketBytes(bytes: ByteArray, onComplete: (String) -> Unit, onError: (Exception) -> Unit) {
+        repository.uploadImagen(bytes, 
+            onSuccess = { url -> onComplete(url) },
+            onFailure = { e -> onError(e) }
+        )
+    }
+
     fun agregarGasto(gasto: Gasto) {
         val user = auth.currentUser
         val gastoReal = gasto.copy(userId = user?.uid ?: "", emailUsuario = user?.email ?: "")
@@ -92,7 +96,6 @@ class MainViewModel : ViewModel() {
         return _reportes.value?.find { it.gastoId == gastoId }
     }
 
-    // --- ACCIONES REPORTES (USUARIO) ---
     fun enviarReporteFirebase(gasto: Gasto, descripcion: String) {
         val user = auth.currentUser ?: return
         val reporteMap = hashMapOf(
@@ -108,19 +111,14 @@ class MainViewModel : ViewModel() {
         repository.addReporte(reporteMap)
     }
 
-    // --- ACCIONES REPORTES (ADMIN) --- NUEVAS FUNCIONES
     fun eliminarReporte(id: String) {
         repository.deleteReporte(id)
-        // Opcional: recargar lista si no es automático
         repository.getReportes { _reportes.value = it }
     }
 
-
-    // --- ACTUALIZACIÓN UI ---
     private fun actualizarUI() {
         _gastosGlobales.value = listaMaestra
         _totalMes.value = listaMaestra.sumOf { it.monto }
-        // Nota: Quitamos "PROCESANDO" del filtro
         _totalPendiente.value = listaMaestra.filter { it.estado == EstadoGasto.PENDIENTE }.sumOf { it.monto }
 
         _statsCategorias.value = listaMaestra.groupBy { it.categoria }
@@ -131,7 +129,6 @@ class MainViewModel : ViewModel() {
         aplicarFiltros()
     }
 
-    // --- FILTROS ---
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
     fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
