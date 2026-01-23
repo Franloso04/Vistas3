@@ -1,4 +1,4 @@
-package com.example.vistas.data
+package com.example.vistas.data.repository
 
 import android.net.Uri
 import android.util.Log
@@ -12,11 +12,12 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.storage.FirebaseStorage
 import java.util.UUID
 
+
 class FirestoreRepository {
 
     private val db = FirebaseFirestore.getInstance()
     private val collection = db.collection("gastos")
-    
+
     private val storage by lazy {
         val bucketName = "gs://carsmarobe-test.firebasestorage.app"
         FirebaseStorage.getInstance(bucketName)

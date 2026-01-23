@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.vistas.data.FirestoreRepository
+import com.example.vistas.data.repository.FirestoreRepository
 import com.example.vistas.model.EstadoGasto
 import com.example.vistas.model.Gasto
 import com.example.vistas.model.Reporte

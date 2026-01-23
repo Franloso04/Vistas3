@@ -1,6 +1,6 @@
 package com.example.vistas.data.repository
 
-import com.example.vistas.data.api.Empleado
+import com.example.vistas.model.Empleado
 import com.example.vistas.data.api.LoginRequest
 import com.example.vistas.data.api.RetrofitInstance
 
