@@ -137,60 +137,43 @@ class OcrFragment : Fragment(R.layout.fragment_ocr_validation) {
     }
 
     private fun subirYGuardar(nombre: String, monto: Double, categoria: String, fecha: String) {
-        val context = context ?: return
         val uri = photoUri ?: return
 
         progressBar?.visibility = View.VISIBLE
         btnConfirmar?.isEnabled = false 
         
-        // Convertimos URI a ByteArray aquí mismo para mayor seguridad
-        try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val bytes = inputStream?.readBytes()
-            inputStream?.close()
-
-            if (bytes != null) {
-                viewModel.subirImagenTicketBytes(bytes, 
-                    onComplete = { url ->
-                        val currentUser = FirebaseAuth.getInstance().currentUser
-                        val nuevoGasto = Gasto(
-                            id = UUID.randomUUID().toString(),
-                            nombreComercio = nombre,
-                            fecha = fecha,
-                            categoria = categoria,
-                            monto = monto,
-                            timestamp = calendar.timeInMillis,
-                            imagenUrl = url,
-                            estado = EstadoGasto.PENDIENTE,
-                            userId = currentUser?.uid ?: "",
-                            emailUsuario = currentUser?.email ?: ""
-                        )
-
-                        viewModel.agregarGasto(nuevoGasto)
-                        if (isAdded) {
-                            progressBar?.visibility = View.GONE
-                            Toast.makeText(context, "Ticket guardado con éxito", Toast.LENGTH_SHORT).show()
-                            findNavController().popBackStack()
-                        }
-                    },
-                    onError = { e ->
-                        if (isAdded) {
-                            progressBar?.visibility = View.GONE
-                            btnConfirmar?.isEnabled = true
-                            Toast.makeText(context, "Error al subir: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-                    }
+        // Usamos directamente el Uri con el nuevo método del ViewModel para evitar errores de sesión
+        viewModel.subirImagenTicket(uri, 
+            onComplete = { url ->
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                val nuevoGasto = Gasto(
+                    id = UUID.randomUUID().toString(),
+                    nombreComercio = nombre,
+                    fecha = fecha,
+                    categoria = categoria,
+                    importe = monto,
+                    timestamp = calendar.timeInMillis,
+                    imagenUrl = url,
+                    estado = EstadoGasto.PENDIENTE,
+                    userId = currentUser?.uid ?: "",
+                    emailUsuario = currentUser?.email ?: ""
                 )
-            } else {
-                progressBar?.visibility = View.GONE
-                btnConfirmar?.isEnabled = true
-                Toast.makeText(context, "No se pudo leer la imagen", Toast.LENGTH_SHORT).show()
+
+                viewModel.agregarGasto(nuevoGasto)
+                if (isAdded) {
+                    progressBar?.visibility = View.GONE
+                    Toast.makeText(context, "Ticket guardado con éxito", Toast.LENGTH_SHORT).show()
+                    findNavController().popBackStack()
+                }
+            },
+            onError = { e ->
+                if (isAdded) {
+                    progressBar?.visibility = View.GONE
+                    btnConfirmar?.isEnabled = true
+                    Toast.makeText(context, "Error al subir: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
-        } catch (e: Exception) {
-            progressBar?.visibility = View.GONE
-            btnConfirmar?.isEnabled = true
-            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
+        )
     }
 
     private fun mostrarSelectorFecha(editText: EditText) {

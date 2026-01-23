@@ -38,7 +38,7 @@ class AdminAdapter(
         val gasto = lista[position]
 
         holder.txtComercio.text = gasto.nombreComercio
-        holder.txtMonto.text = "$${gasto.monto}"
+        holder.txtMonto.text = "$${gasto.importe}"
         holder.txtUsuario.text = gasto.emailUsuario
 
         // Configuramos los clics

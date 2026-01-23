@@ -1,5 +1,6 @@
 package com.example.vistas
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -73,13 +74,16 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    // ACTUALIZADO: Función que recibe Bytes para mayor robustez
-    fun subirImagenTicketBytes(bytes: ByteArray, onComplete: (String) -> Unit, onError: (Exception) -> Unit) {
-        repository.uploadImagen(bytes, 
+
+    fun subirImagenTicket(uri: Uri, onComplete: (String) -> Unit, onError: (Exception) -> Unit) {
+        repository.uploadImagen(uri, 
             onSuccess = { url -> onComplete(url) },
             onFailure = { e -> onError(e) }
         )
     }
+
+
+
 
     fun agregarGasto(gasto: Gasto) {
         val user = auth.currentUser
@@ -103,7 +107,7 @@ class MainViewModel : ViewModel() {
             "emailUsuario" to (user.email ?: "Desconocido"),
             "gastoId" to gasto.id,
             "comercio" to gasto.nombreComercio,
-            "monto" to gasto.monto,
+            "importe" to gasto.importe,
             "descripcion" to descripcion,
             "fechaReporte" to System.currentTimeMillis(),
             "estado" to "PENDIENTE"
@@ -118,13 +122,13 @@ class MainViewModel : ViewModel() {
 
     private fun actualizarUI() {
         _gastosGlobales.value = listaMaestra
-        _totalMes.value = listaMaestra.sumOf { it.monto }
-        _totalPendiente.value = listaMaestra.filter { it.estado == EstadoGasto.PENDIENTE }.sumOf { it.monto }
+        _totalMes.value = listaMaestra.sumOf { it.importe }
+        _totalPendiente.value = listaMaestra.filter { it.estado == EstadoGasto.PENDIENTE }.sumOf { it.importe }
 
         _statsCategorias.value = listaMaestra.groupBy { it.categoria }
-            .mapValues { entry -> entry.value.sumOf { it.monto } }
+            .mapValues { entry -> entry.value.sumOf { it.importe } }
         _statsEmpleados.value = listaMaestra.groupBy { it.emailUsuario }
-            .mapValues { entry -> entry.value.sumOf { it.monto } }
+            .mapValues { entry -> entry.value.sumOf { it.importe } }
 
         aplicarFiltros()
     }

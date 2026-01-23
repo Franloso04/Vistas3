@@ -9,7 +9,7 @@ data class Gasto(
     val nombreComercio: String = "",
     val fecha: String = "",
     val categoria: String = "",
-    val monto: Double = 0.0,
+    val importe: Double = 0.0,
     val estado: EstadoGasto = EstadoGasto.PENDIENTE,
     val timestamp: Long = System.currentTimeMillis(), // Para ordenar
     var isSelected: Boolean = false, // Ignorado por Firebase normalmente

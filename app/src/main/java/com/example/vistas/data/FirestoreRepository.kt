@@ -1,5 +1,6 @@
 package com.example.vistas.data
 
+import android.net.Uri
 import android.util.Log
 import com.example.vistas.model.EstadoGasto
 import com.example.vistas.model.Gasto
@@ -16,19 +17,28 @@ class FirestoreRepository {
     private val db = FirebaseFirestore.getInstance()
     private val collection = db.collection("gastos")
     
-    // USAMOS LA INSTANCIA POR DEFECTO (Autodetecta el bucket del google-services.json)
-    private val storage = FirebaseStorage.getInstance()
+    private val storage by lazy {
+        val bucketName = "gs://carsmarobe-test.firebasestorage.app"
+        FirebaseStorage.getInstance(bucketName)
+    }
 
-    fun uploadImagen(bytes: ByteArray, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
-        // Log para saber qué cubo está intentando usar la App realmente
-        val bucketName = FirebaseApp.getInstance().options.storageBucket
-        Log.d("STORAGE_DEBUG", "Cubo detectado por la App: $bucketName")
+    fun uploadImagen(fileUri: Uri, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        val fileName = "tickets/${UUID.randomUUID()}.jpg"
+        val storageRef = storage.reference.child(fileName)
 
-        if (bucketName.isNullOrEmpty()) {
-            onFailure(Exception("El nombre del cubo de Storage está vacío en el google-services.json"))
-            return
-        }
+        storageRef.putFile(fileUri)
+            .addOnSuccessListener {
+                storageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    onSuccess(downloadUri.toString())
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("STORAGE_DEBUG", "Error al subir imagen: ${exception.message}", exception)
+                onFailure(exception)
+            }
+    }
 
+    fun uploadImagenBytes(bytes: ByteArray, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         val fileName = "tickets/${UUID.randomUUID()}.jpg"
         val storageRef = storage.reference.child(fileName)
 
@@ -39,7 +49,7 @@ class FirestoreRepository {
                 }
             }
             .addOnFailureListener { exception ->
-                Log.e("STORAGE_DEBUG", "Error al subir: ${exception.message}")
+                Log.e("STORAGE_DEBUG", "Error al subir bytes: ${exception.message}", exception)
                 onFailure(exception)
             }
     }
@@ -86,13 +96,16 @@ class FirestoreRepository {
             val data = doc.data ?: return null
             val estadoStr = data["estado"] as? String ?: "PENDIENTE"
             val estadoSeguro = try { EstadoGasto.valueOf(estadoStr) } catch (e: Exception) { EstadoGasto.PENDIENTE }
+
+            val valorImporte = (data["importe"] as? Number ?: data["monto"] as? Number)?.toDouble() ?: 0.0
+
             Gasto(
                 id = doc.id,
                 userId = data["userId"] as? String ?: "",
                 nombreComercio = data["nombreComercio"] as? String ?: "",
                 fecha = data["fecha"] as? String ?: "",
                 categoria = data["categoria"] as? String ?: "",
-                monto = (data["monto"] as? Number)?.toDouble() ?: 0.0,
+                importe = valorImporte,
                 emailUsuario = data["emailUsuario"] as? String ?: "",
                 imagenUrl = data["imagenUrl"] as? String ?: "",
                 timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L,
