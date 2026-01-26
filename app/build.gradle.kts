@@ -1,18 +1,17 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-
-    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.example.vistas"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.vistas"
-        minSdk = 33
-        targetSdk = 36
+        minSdk = 24
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -38,15 +37,7 @@ android {
 }
 
 dependencies {
-    // Use a single, recent Firebase BoM version
-    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-
-    // Firebase libraries (versions managed by BoM)
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-storage")
-    //Api
+    // API
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
@@ -59,14 +50,18 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    
+
     // UI Libraries
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
+    
+    // Otros
     implementation(libs.firebase.appdistribution.gradle)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.common)
 
     // Testing
     testImplementation(libs.junit)
