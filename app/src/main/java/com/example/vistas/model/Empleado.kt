@@ -1,22 +1,13 @@
 package com.example.vistas.model
 
-import androidx.room.Entity
+import com.google.gson.annotations.SerializedName
 
 data class Empleado(
-    val id: Long,
-    val nombre: String,
-    val email: String,
-    val seccion: Int,
-    val privilegios: Int
-)
-@Entity
-@Table(name = "empleados", schema = "Carsmarobe")
-data class EmpleadoEntity(
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
-    val nombre: String,
-    val email: String,
-    val password: String,
-    val seccion: Int,
-    val privilegios: Int
+    @SerializedName("id") val id: String, // La API devuelve ID como String en el JSON ("232")
+    @SerializedName("nombre") val nombre: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("seccion") val seccion: String,
+    @SerializedName("privilegios") val privilegios: String,
+    @SerializedName("privilegios_globales") val privilegiosGlobales: String,
+    @SerializedName("antiguedad") val antiguedad: String
 )

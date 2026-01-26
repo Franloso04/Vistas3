@@ -1,64 +1,84 @@
 package com.example.vistas
 
+import android.net.Uri
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.vistas.data.api.ApiService
-import com.example.vistas.data.api.RetrofitInstance
-import com.example.vistas.data.repository.AuthRepository
-import com.example.vistas.data.repository.GastosRepository
+import com.example.vistas.data.repository.AppRepository
 import com.example.vistas.model.Empleado
-import com.example.vistas.model.Gasto
-import com.example.vistas.model.Reporte
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import java.io.File
 
 class MainViewModel : ViewModel() {
 
-    private val api = RetrofitInstance.api
-    private val authRepo = AuthRepository(api as ApiService)
-    private val gastosRepo = GastosRepository(api as ApiService)
+    private val repository = AppRepository()
 
-    private val _empleado = MutableStateFlow<Empleado?>(null)
-    val empleado: StateFlow<Empleado?> = _empleado
+    // Estado del usuario logueado
+    private val _empleadoSesion = MutableLiveData<Empleado?>()
+    val empleadoSesion: LiveData<Empleado?> = _empleadoSesion
 
-    private val _gastos = MutableStateFlow<List<Gasto>>(emptyList())
-    val gastos: StateFlow<List<Gasto>> = _gastos
+    // Estado de carga (para mostrar ProgressBar)
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _reporte = MutableStateFlow<Reporte?>(null)
-    val reporte: StateFlow<Reporte?> = _reporte
+    // Mensajes de error/éxito para mostrar Toast en Fragment
+    private val _mensajeOp = MutableLiveData<String?>()
+    val mensajeOp: LiveData<String?> = _mensajeOp
 
-    fun login(email: String, password: String) {
+    // --- LOGIN ---
+    fun realizarLogin(email: String, pass: String) {
+        _isLoading.value = true
         viewModelScope.launch {
-            _empleado.value = authRepo.login(email, password)
+            val resultado = repository.login(email, pass)
+            _isLoading.value = false
+
+            resultado.onSuccess { empleado ->
+                _empleadoSesion.value = empleado
+                _mensajeOp.value = "Bienvenido ${empleado.nombre}"
+            }.onFailure { error ->
+                _mensajeOp.value = "Error: ${error.message}"
+            }
         }
     }
 
-    fun cargarGastos() {
-        val emp = _empleado.value ?: return
+    // --- SUBIR GASTO ---
+    fun subirGasto(
+        categoria: String,
+        fecha: String, // YYYY-MM-DD
+        importe: Double,
+        comercio: String,
+        archivo: File
+    ) {
+        val emp = _empleadoSesion.value
+        if (emp == null) {
+            _mensajeOp.value = "Error: No hay sesión iniciada"
+            return
+        }
+
+        _isLoading.value = true
         viewModelScope.launch {
-            _gastos.value = gastosRepo.obtenerGastos(emp.id)
+            val resultado = repository.subirGasto(
+                idEmpleado = emp.id,
+                idSeccion = emp.seccion,
+                categoria = categoria,
+                fecha = fecha,
+                importe = importe.toString(),
+                comercio = comercio,
+                archivoFoto = archivo
+            )
+            _isLoading.value = false
+
+            resultado.onSuccess { msg ->
+                _mensajeOp.value = "ÉXITO: $msg"
+            }.onFailure { error ->
+                _mensajeOp.value = "FALLO: ${error.message}"
+            }
         }
     }
 
-    fun cargarDashboard() {
-        val emp = _empleado.value ?: return
-        viewModelScope.launch {
-            _reporte.value = gastosRepo.obtenerResumen(emp.id)
-        }
-    }
-
-    fun aprobarGasto(id: Long) {
-        viewModelScope.launch {
-            gastosRepo.cambiarEstado(id, "aprobado")
-            cargarGastos()
-        }
-    }
-
-    fun rechazarGasto(id: Long) {
-        viewModelScope.launch {
-            gastosRepo.cambiarEstado(id, "rechazado")
-            cargarGastos()
-        }
+    // Limpiar mensaje tras mostrarlo
+    fun limpiarMensaje() {
+        _mensajeOp.value = null
     }
 }
