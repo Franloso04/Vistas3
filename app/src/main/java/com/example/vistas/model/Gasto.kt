@@ -25,5 +25,8 @@ data class Gasto(
     @SerializedName("estado") val estado: EstadoGasto = EstadoGasto.PENDIENTE,
 
     // Para ordenar en MainViewModel
-    val timestamp: Long = 0L
+    val timestamp: Long = 0L,
+
+    // Estado local para la selección en la UI
+    var isSelected: Boolean = false
 )

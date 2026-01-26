@@ -16,13 +16,12 @@ class AdminAdapter(
 ) : RecyclerView.Adapter<AdminAdapter.VH>() {
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
-        // Asegúrate de que estos IDs existen en item_admin_gasto.xml
-        val txtComercio: TextView = v.findViewById(R.id.txtComercioAdmin)
-        val txtMonto: TextView = v.findViewById(R.id.txtMontoAdmin)
-        val txtUsuario: TextView = v.findViewById(R.id.txtUsuarioAdmin)
-        val btnAprobar: ImageButton = v.findViewById(R.id.btnAprobar)
-        val btnRechazar: ImageButton = v.findViewById(R.id.btnRechazar)
-        val btnEliminar: ImageButton = v.findViewById(R.id.btnEliminarAdmin)
+        val txtComercio: TextView = v.findViewById(R.id.txtAdminComercio)
+        val txtMonto: TextView = v.findViewById(R.id.txtAdminMonto)
+        val txtUsuario: TextView = v.findViewById(R.id.txtAdminUser)
+        val btnAprobar: ImageButton = v.findViewById(R.id.btnApprove)
+        val btnRechazar: ImageButton = v.findViewById(R.id.btnReject)
+        val btnEliminar: ImageButton = v.findViewById(R.id.btnDelete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -33,9 +32,8 @@ class AdminAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val gasto = lista[position]
         holder.txtComercio.text = gasto.nombreComercio
-        // Ahora gasto.monto funciona porque lo definimos en el Modelo
         holder.txtMonto.text = "${gasto.monto}€"
-        holder.txtUsuario.text = gasto.emailUsuario
+        holder.txtUsuario.text = gasto.emailUsuario.ifEmpty { "ID: ${gasto.userId}" }
 
         holder.btnAprobar.setOnClickListener { onAprobar(gasto) }
         holder.btnRechazar.setOnClickListener { onRechazar(gasto) }

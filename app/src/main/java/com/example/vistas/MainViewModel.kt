@@ -16,53 +16,48 @@ class MainViewModel : ViewModel() {
 
     private val repository = AppRepository()
 
-    // --- VARIABLES DE SESIÓN ---
+    // SESIÓN
     private val _empleadoSesion = MutableLiveData<Empleado?>()
     val empleadoSesion: LiveData<Empleado?> = _empleadoSesion
     var isAdmin = false
         private set
 
+    // UI STATES
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
     private val _mensajeOp = MutableLiveData<String?>()
     val mensajeOp: LiveData<String?> = _mensajeOp
 
-    // --- VARIABLES DE UI (Restauradas EXACTAMENTE como las tenías) ---
+    // DATOS
     private var listaMaestra: List<Gasto> = emptyList()
 
-    // AdminFragment usa esto:
+    // LiveData para Fragments
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
-    // ExpensesFragment usa esto:
     private val _gastosFiltrados = MutableLiveData<List<Gasto>>()
     val gastosFiltrados: LiveData<List<Gasto>> = _gastosFiltrados
 
-    // AdminFragment usa esto:
     private val _reportes = MutableLiveData<List<Reporte>>()
     val reportes: LiveData<List<Reporte>> = _reportes
 
-    // DashboardFragment usa estas 4:
+    // Dashboard
     private val _totalMes = MutableLiveData<Double>(0.0)
     val totalMes: LiveData<Double> = _totalMes
-
     private val _totalPendiente = MutableLiveData<Double>(0.0)
     val totalPendiente: LiveData<Double> = _totalPendiente
-
     private val _statsCategorias = MutableLiveData<Map<String, Double>>()
     val statsCategorias: LiveData<Map<String, Double>> = _statsCategorias
-
     private val _statsEmpleados = MutableLiveData<Map<String, Double>>()
     val statsEmpleados: LiveData<Map<String, Double>> = _statsEmpleados
 
-    // Filtros internos
+    // Filtros
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
     private var ordenMasReciente = true
 
-    // --- FUNCIONES QUE TU UI LLAMA ---
-
+    // --- SESIÓN ---
     fun realizarLogin(email: String, pass: String) {
         _isLoading.value = true
         viewModelScope.launch {
@@ -81,24 +76,24 @@ class MainViewModel : ViewModel() {
         recargarSesion()
     }
 
+    fun cerrarSesion() {
+        _empleadoSesion.value = null
+        listaMaestra = emptyList()
+        actualizarUI()
+    }
+
     fun recargarSesion() {
         viewModelScope.launch {
-            // Descargar de API
             listaMaestra = repository.getGastos()
-
-            // Actualizar UI
-            actualizarCalculos()
-
-            // Cargar reportes (Mock)
+            actualizarUI()
             if (isAdmin) repository.getReportes { _reportes.value = it }
         }
     }
 
-    private fun actualizarCalculos() {
+    private fun actualizarUI() {
         _gastosGlobales.value = listaMaestra
         aplicarFiltros()
 
-        // Lógica Dashboard
         val listaDash = if(isAdmin) listaMaestra else listaMaestra.filter { it.userId == _empleadoSesion.value?.id }
 
         _totalMes.value = listaDash.sumOf { it.monto }
@@ -107,27 +102,7 @@ class MainViewModel : ViewModel() {
         _statsEmpleados.value = listaDash.groupBy { it.emailUsuario }.mapValues { it.value.sumOf { g -> g.monto } }
     }
 
-    // AdminFragment llama a estas funciones:
-    fun aprobarGasto(id: String) {
-        viewModelScope.launch { repository.cambiarEstado(id, EstadoGasto.APROBADO); recargarSesion() }
-    }
-
-    fun rechazarGasto(id: String) {
-        viewModelScope.launch { repository.cambiarEstado(id, EstadoGasto.RECHAZADO); recargarSesion() }
-    }
-
-    fun eliminarGastoIndividual(id: String) {
-        viewModelScope.launch { repository.borrarGasto(id); recargarSesion() }
-    }
-
-    fun eliminarReporte(id: String) {
-        // Implementación simple
-        val actual = _reportes.value.orEmpty().toMutableList()
-        actual.removeAll { it.id == id }
-        _reportes.value = actual
-    }
-
-    // OcrFragment llama a esto:
+    // --- ACCIONES ---
     fun subirGasto(cat: String, fecha: String, imp: Double, com: String, file: File) {
         val emp = _empleadoSesion.value ?: return
         _isLoading.value = true
@@ -135,28 +110,53 @@ class MainViewModel : ViewModel() {
             val res = repository.subirGasto(emp.id, emp.seccion, cat, fecha, imp.toString(), com, file)
             _isLoading.value = false
             res.onSuccess {
-                _mensajeOp.value = "Subido correctamente"
+                _mensajeOp.value = "Subido OK"
                 recargarSesion()
             }.onFailure { _mensajeOp.value = "Error: ${it.message}" }
         }
     }
 
-    // Funciones auxiliares
+    fun aprobarGasto(id: String) { viewModelScope.launch { repository.cambiarEstado(id, EstadoGasto.APROBADO); recargarSesion() } }
+    fun rechazarGasto(id: String) { viewModelScope.launch { repository.cambiarEstado(id, EstadoGasto.RECHAZADO); recargarSesion() } }
+    fun eliminarGastoIndividual(id: String) { viewModelScope.launch { repository.borrarGasto(id); recargarSesion() } }
+
+    fun eliminarGastosSeleccionados(ids: List<String>) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            ids.forEach { repository.borrarGasto(it) }
+            _isLoading.value = false
+            _mensajeOp.value = "Gastos eliminados"
+            recargarSesion()
+        }
+    }
+
+    fun eliminarReporte(id: String) {
+        repository.deleteReporte(id)
+        val actual = _reportes.value.orEmpty().toMutableList()
+        actual.removeAll { it.id == id }
+        _reportes.value = actual
+    }
+
+    fun tieneIncidencia(gastoId: String): Reporte? = _reportes.value?.find { it.gastoId == gastoId }
+    fun enviarReporteFirebase(gasto: Gasto, desc: String) { _mensajeOp.value = "Reporte simulado" }
+    fun limpiarMensaje() { _mensajeOp.value = null }
+
+    // --- FILTROS ---
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
     fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
     fun ordenarPorFecha(r: Boolean) { ordenMasReciente = r; aplicarFiltros() }
-    fun limpiarMensaje() { _mensajeOp.value = null }
-    fun tieneIncidencia(gastoId: String): Reporte? = _reportes.value?.find { it.gastoId == gastoId }
-    fun enviarReporteFirebase(gasto: Gasto, desc: String) {} // Mock
 
     private fun aplicarFiltros() {
         var lista = listaMaestra
         val empId = _empleadoSesion.value?.id
         if (!isAdmin && empId != null) lista = lista.filter { it.userId == empId }
 
-        // ... (lógica de filtros estándar) ...
+        if (busquedaActual.isNotEmpty()) lista = lista.filter { it.nombreComercio.contains(busquedaActual, true) }
+        if (categoriaActual != "Todas") lista = lista.filter { it.categoria.equals(categoriaActual, true) }
+        if (estadoActual != "Todos") lista = lista.filter { it.estado.name.equals(estadoActual, true) }
 
+        lista = if (ordenMasReciente) lista.sortedByDescending { it.timestamp } else lista.sortedBy { it.timestamp }
         _gastosFiltrados.value = lista
     }
 }

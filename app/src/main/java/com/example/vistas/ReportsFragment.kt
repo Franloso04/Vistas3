@@ -43,7 +43,7 @@ class ReportsFragment : Fragment(R.layout.screen_report) {
 
                 // Texto bonito para la lista
                 val opciones = gastos.map {
-                    "${it.nombreComercio} ($${it.importe}) - ${it.fecha}"
+                    "${it.nombreComercio} ($${it.monto}) - ${it.fecha}"
                 }
 
                 // Configuramos el adaptador

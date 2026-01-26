@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    // alias(libs.plugins.kotlin.compose) // Si no usas Compose puro, puedes comentar esto o dejarlo
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -32,10 +32,21 @@ android {
     }
     buildFeatures {
         viewBinding = true // Recomendado para evitar findViewById
+        compose = true
     }
 }
 
 dependencies {
+    // Jetpack Compose
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.activity.compose)
+
     // RED (Retrofit + OkHttp)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")

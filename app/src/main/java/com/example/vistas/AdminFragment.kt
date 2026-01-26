@@ -1,15 +1,12 @@
 package com.example.vistas
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.vistas.model.Gasto
-import com.example.vistas.model.Reporte
+import com.example.vistas.model.EstadoGasto
 
 class AdminFragment : Fragment(R.layout.screen_admin) {
 
@@ -20,37 +17,30 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Setup Recycler Gastos
+        // RecyclerView Gastos Pendientes
         val recyclerGastos = view.findViewById<RecyclerView>(R.id.recyclerPendientes)
         recyclerGastos.layoutManager = LinearLayoutManager(context)
-
         adapterGastos = AdminAdapter(
             lista = emptyList(),
-            onAprobar = { g -> viewModel.aprobarGasto(g.id) },
-            onRechazar = { g -> viewModel.rechazarGasto(g.id) },
-            onEliminar = { g -> viewModel.eliminarGastoIndividual(g.id) }
+            onAprobar = { viewModel.aprobarGasto(it.id) },
+            onRechazar = { viewModel.rechazarGasto(it.id) },
+            onEliminar = { viewModel.eliminarGastoIndividual(it.id) }
         )
         recyclerGastos.adapter = adapterGastos
 
-        // Setup Recycler Reportes
+        // RecyclerView Reportes (Si existe en el XML)
         val recyclerReportes = view.findViewById<RecyclerView>(R.id.recyclerReportes)
-        recyclerReportes.layoutManager = LinearLayoutManager(context)
+        if (recyclerReportes != null) {
+            recyclerReportes.layoutManager = LinearLayoutManager(context)
+            adapterReportes = ReportAdapter(emptyList()) { viewModel.eliminarReporte(it.id) }
+            recyclerReportes.adapter = adapterReportes
 
-        adapterReportes = ReportAdapter(
-            lista = emptyList(),
-            onEliminar = { r -> viewModel.eliminarReporte(r.id) }
-        )
-        recyclerReportes.adapter = adapterReportes
-
-        // Observers
-        viewModel.gastosGlobales.observe(viewLifecycleOwner) { lista ->
-            // Filtramos solo pendientes para validar
-            val pendientes = lista.filter { it.estado.name == "PENDIENTE" }
-            adapterGastos.updateList(pendientes)
+            viewModel.reportes.observe(viewLifecycleOwner) { adapterReportes.updateList(it) }
         }
 
-        viewModel.reportes.observe(viewLifecycleOwner) { lista ->
-            adapterReportes.updateList(lista)
+        viewModel.gastosGlobales.observe(viewLifecycleOwner) { lista ->
+            val pendientes = lista.filter { it.estado == EstadoGasto.PENDIENTE }
+            adapterGastos.updateList(pendientes)
         }
     }
 }

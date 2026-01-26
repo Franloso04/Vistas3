@@ -47,7 +47,7 @@ class GastoAdapter(
         // 1. Datos de Texto
         holder.comercio.text = gasto.nombreComercio
         holder.info.text = "${gasto.fecha} • ${gasto.categoria}"
-        holder.monto.text = "$${String.format("%.2f", gasto.importe)}"
+        holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
         // 2. LÓGICA DE ICONOS (AQUÍ ESTÁ EL CAMBIO)
         val iconRes = when (gasto.categoria) {
