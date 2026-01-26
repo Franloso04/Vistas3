@@ -1,5 +1,6 @@
 package com.example.vistas
 
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -13,32 +14,43 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // --- CAMBIO 1: Configuración predeterminada de Modo Oscuro ---
-        // Si el usuario nunca ha elegido, forzamos el modo oscuro por defecto.
-        if (AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_UNSPECIFIED) {
+        // --- GESTIÓN DEL TEMA (MODO OSCURO/CLARO) ---
+        // 1. Cargamos la preferencia guardada por el usuario
+        val sharedPrefs = getSharedPreferences("AppConfig", Context.MODE_PRIVATE)
+        val esOscuro = sharedPrefs.getBoolean("MODO_OSCURO", true) // Por defecto TRUE (Oscuro)
+
+        // 2. Aplicamos el tema antes de cargar la vista
+        if (esOscuro) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         }
 
         setContentView(R.layout.activity_main)
 
-        // 1. Inicializar componentes
+        // --- CONFIGURACIÓN DE NAVEGACIÓN ---
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
+
+        // El ID en activity_main.xml es 'bottom_nav'
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
 
-        // 2. Vincular BottomNav con NavController
-        bottomNav.setupWithNavController(navController)
+        if (bottomNav != null) {
+            // Vincular BottomNav con NavController
+            bottomNav.setupWithNavController(navController)
 
-        // 3. Lógica para ocultar el menú
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            when (destination.id) {
-                // --- CAMBIO 2: Añadido reportsFragment para ocultar el menú ahí también ---
-                R.id.loginFragment, R.id.ocrFragment, R.id.reportsFragment -> {
-                    bottomNav.visibility = View.GONE
-                }
-                else -> {
-                    bottomNav.visibility = View.VISIBLE
+            // Lógica para ocultar el menú en pantallas específicas
+            navController.addOnDestinationChangedListener { _, destination, _ ->
+                when (destination.id) {
+                    R.id.loginFragment,
+                    R.id.ocrFragment,
+                    R.id.reportsFragment -> {
+                        bottomNav.visibility = View.GONE
+                    }
+                    else -> {
+                        bottomNav.visibility = View.VISIBLE
+                    }
                 }
             }
         }
