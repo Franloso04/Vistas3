@@ -8,49 +8,44 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.vistas.model.Gasto
 
-// Asegúrate de NO tener 'import android.R' aquí arriba
-
 class AdminAdapter(
     private var lista: List<Gasto>,
     private val onAprobar: (Gasto) -> Unit,
     private val onRechazar: (Gasto) -> Unit,
     private val onEliminar: (Gasto) -> Unit
-) : RecyclerView.Adapter<AdminAdapter.AdminVH>() {
+) : RecyclerView.Adapter<AdminAdapter.VH>() {
 
-    class AdminVH(view: View) : RecyclerView.ViewHolder(view) {
-        // Enlazamos con los IDs EXACTOS de tu item_admin_gasto.xml
-        val txtComercio: TextView = view.findViewById(R.id.txtAdminComercio)
-        val txtMonto: TextView = view.findViewById(R.id.txtAdminMonto)
-        val txtUsuario: TextView = view.findViewById(R.id.txtAdminUser)
-
-        val btnApprove: ImageButton = view.findViewById(R.id.btnApprove)
-        val btnReject: ImageButton = view.findViewById(R.id.btnReject)
-        val btnDelete: ImageButton = view.findViewById(R.id.btnDelete)
+    class VH(v: View) : RecyclerView.ViewHolder(v) {
+        // Asegúrate de que estos IDs existen en item_admin_gasto.xml
+        val txtComercio: TextView = v.findViewById(R.id.txtComercioAdmin)
+        val txtMonto: TextView = v.findViewById(R.id.txtMontoAdmin)
+        val txtUsuario: TextView = v.findViewById(R.id.txtUsuarioAdmin)
+        val btnAprobar: ImageButton = v.findViewById(R.id.btnAprobar)
+        val btnRechazar: ImageButton = v.findViewById(R.id.btnRechazar)
+        val btnEliminar: ImageButton = v.findViewById(R.id.btnEliminarAdmin)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AdminVH {
-        // Cargamos tu archivo item_admin_gasto.xml
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_admin_gasto, parent, false)
-        return AdminVH(view)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        val v = LayoutInflater.from(parent.context).inflate(R.layout.item_admin_gasto, parent, false)
+        return VH(v)
     }
 
-    override fun onBindViewHolder(holder: AdminVH, position: Int) {
+    override fun onBindViewHolder(holder: VH, position: Int) {
         val gasto = lista[position]
-
         holder.txtComercio.text = gasto.nombreComercio
-        holder.txtMonto.text = "$${gasto.importe}"
+        // Ahora gasto.monto funciona porque lo definimos en el Modelo
+        holder.txtMonto.text = "${gasto.monto}€"
         holder.txtUsuario.text = gasto.emailUsuario
 
-        // Configuramos los clics
-        holder.btnApprove.setOnClickListener { onAprobar(gasto) }
-        holder.btnReject.setOnClickListener { onRechazar(gasto) }
-        holder.btnDelete.setOnClickListener { onEliminar(gasto) }
+        holder.btnAprobar.setOnClickListener { onAprobar(gasto) }
+        holder.btnRechazar.setOnClickListener { onRechazar(gasto) }
+        holder.btnEliminar.setOnClickListener { onEliminar(gasto) }
     }
 
     override fun getItemCount() = lista.size
 
     fun updateList(nuevaLista: List<Gasto>) {
-        this.lista = nuevaLista
+        lista = nuevaLista
         notifyDataSetChanged()
     }
 }

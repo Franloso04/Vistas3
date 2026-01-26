@@ -1,19 +1,15 @@
 package com.example.vistas.data.api
 
+import com.example.vistas.model.Gasto
 import com.example.vistas.model.GastoResponse
 import com.example.vistas.model.LoginResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
-import retrofit2.http.Multipart
-import retrofit2.http.POST
-import retrofit2.http.Part
+import retrofit2.http.*
 
 interface ApiService {
 
-    // LOGIN: FormUrlEncoded porque se envían campos simples
     @FormUrlEncoded
     @POST("empleados")
     suspend fun login(
@@ -22,18 +18,43 @@ interface ApiService {
         @Field("token") token: String
     ): Response<LoginResponse>
 
-    // INSERTAR GASTO: Multipart porque enviamos TEXTO + ARCHIVO (Foto)
     @Multipart
     @POST("gastos.php")
     suspend fun insertarGasto(
         @Part("action") action: RequestBody,
         @Part("token") token: RequestBody,
-        @Part("id_empleado") idEmpleado: RequestBody,
-        @Part("id_seccion") idSeccion: RequestBody,
-        @Part("categoria") categoria: RequestBody,
-        @Part("fecha") fecha: RequestBody,
-        @Part("importe") importe: RequestBody,
-        @Part("nombreComercio") nombreComercio: RequestBody,
-        @Part ticket: MultipartBody.Part // La foto
+        @Part("id_empleado") idEmp: RequestBody,
+        @Part("id_seccion") idSec: RequestBody,
+        @Part("categoria") cat: RequestBody,
+        @Part("fecha") fec: RequestBody,
+        @Part("importe") imp: RequestBody,
+        @Part("nombreComercio") nom: RequestBody,
+        @Part ticket: MultipartBody.Part
+    ): Response<GastoResponse>
+
+    // Necesario para tu Dashboard y AdminFragment
+    @FormUrlEncoded
+    @POST("gastos.php")
+    suspend fun obtenerGastos(
+        @Field("action") action: String = "listar_todos",
+        @Field("token") token: String
+    ): Response<List<Gasto>>
+
+    // Necesario para aprobar/rechazar en AdminFragment
+    @FormUrlEncoded
+    @POST("gastos.php")
+    suspend fun actualizarEstado(
+        @Field("action") action: String = "actualizar_estado",
+        @Field("token") token: String,
+        @Field("id_gasto") idGasto: String,
+        @Field("nuevo_estado") estado: String
+    ): Response<GastoResponse>
+
+    @FormUrlEncoded
+    @POST("gastos.php")
+    suspend fun borrarGasto(
+        @Field("action") action: String = "borrar",
+        @Field("token") token: String,
+        @Field("id_gasto") idGasto: String
     ): Response<GastoResponse>
 }

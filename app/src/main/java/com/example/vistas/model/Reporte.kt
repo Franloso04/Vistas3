@@ -1,10 +1,10 @@
 package com.example.vistas.model
 
-import java.math.BigDecimal
-
 data class Reporte(
-    val totalMes: BigDecimal,
-    val totalPendiente: BigDecimal,
-    val totalAprobado: BigDecimal,
-    val totalRechazado: BigDecimal
+    val id: String,
+    val gastoId: String,
+    val descripcion: String,
+    val comercio: String,
+    val emailUsuario: String,
+    val fechaReporte: Long = System.currentTimeMillis()
 )
