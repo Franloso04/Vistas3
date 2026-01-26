@@ -66,6 +66,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
+    implementation(libs.firebase.appdistribution.gradle)
 
     // Testing
     testImplementation(libs.junit)
