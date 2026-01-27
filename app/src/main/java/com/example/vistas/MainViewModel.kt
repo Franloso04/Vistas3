@@ -3,148 +3,175 @@ package com.example.vistas
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.vistas.data.FirestoreRepository
+import androidx.lifecycle.viewModelScope
+import com.example.vistas.data.repository.AppRepository
+import com.example.vistas.model.Empleado
 import com.example.vistas.model.EstadoGasto
 import com.example.vistas.model.Gasto
-import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import java.io.File
 
 class MainViewModel : ViewModel() {
 
-    private val repository = FirestoreRepository()
-    private val auth = FirebaseAuth.getInstance()
+    private val repository = AppRepository()
 
-    // --- LIVE DATA ---
-    // 1. GLOBAL (Para AdminFragment y Dashboard - Contiene TODO si eres admin)
+    // Sesión
+    private val _empleadoSesion = MutableLiveData<Empleado?>()
+    val empleadoSesion: LiveData<Empleado?> = _empleadoSesion
+
+    // Estado UI
+    private val _isLoading = MutableLiveData<Boolean>()
+    val isLoading: LiveData<Boolean> = _isLoading
+    private val _mensajeOp = MutableLiveData<String?>()
+    val mensajeOp: LiveData<String?> = _mensajeOp
+
+    // Datos
+    private var listaMaestra: List<Gasto> = emptyList()
+
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
-    // 2. FILTRADO (Para ExpensesFragment - Historial - AHORA SOLO TUS TICKETS)
     private val _gastosFiltrados = MutableLiveData<List<Gasto>>()
     val gastosFiltrados: LiveData<List<Gasto>> = _gastosFiltrados
 
-    // 3. TOTALES (Globales para Admin, Personales para Empleado)
-    private val _totalMes = MutableLiveData<Double>()
+
+
+    // Dashboard
+    private val _totalMes = MutableLiveData<Double>(0.0)
     val totalMes: LiveData<Double> = _totalMes
-
-    private val _totalPendiente = MutableLiveData<Double>()
+    private val _totalPendiente = MutableLiveData<Double>(0.0)
     val totalPendiente: LiveData<Double> = _totalPendiente
-
-    // 4. ESTADÍSTICAS (Para los gráficos del Dashboard)
     private val _statsCategorias = MutableLiveData<Map<String, Double>>()
     val statsCategorias: LiveData<Map<String, Double>> = _statsCategorias
+    private val _statsEmpleados = MutableLiveData<Map<String?, Double>>()
+    val statsEmpleados: LiveData<Map<String?, Double>> = _statsEmpleados
 
-    private val _statsEmpleados = MutableLiveData<Map<String, Double>>()
-    val statsEmpleados: LiveData<Map<String, Double>> = _statsEmpleados
-
-    // --- VARIABLES INTERNAS ---
-    private var listaMaestra: List<Gasto> = emptyList()
-    var isAdmin = false
-
-    // Filtros de UI
+    // Filtros
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
     private var ordenMasReciente = true
 
-    init {
-        detectarRolYCargar()
-    }
-
-    fun recargarSesion() { detectarRolYCargar() }
-
-    private fun detectarRolYCargar() {
-        val user = auth.currentUser
-        if (user != null) {
-            isAdmin = user.email?.lowercase()?.contains("admin") == true
-            cargarDatos(user.uid)
+    fun realizarLogin(email: String, pass: String) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            val res = repository.login(email, pass)
+            _isLoading.value = false
+            res.onSuccess { emp ->
+                setEmpleadoSesion(emp)
+                _mensajeOp.value = "Bienvenido ${emp.nombre}"
+            }.onFailure {
+                _mensajeOp.value = "Error: ${it.message}"
+            }
         }
     }
 
-    private fun cargarDatos(userId: String) {
-        val callback = { lista: List<Gasto> ->
-            listaMaestra = lista
+    fun setEmpleadoSesion(empleado: Empleado) {
+        _empleadoSesion.value = empleado
+        recargarSesion()
+    }
+
+    fun cerrarSesion() {
+        _empleadoSesion.value = null
+        listaMaestra = emptyList()
+        actualizarUI()
+    }
+
+    fun recargarSesion() {
+        val empId = _empleadoSesion.value?.id ?: return
+
+        viewModelScope.launch {
+            listaMaestra = repository.getGastos(empId)
             actualizarUI()
         }
+    }
 
-        // Si es Admin descargamos TODO para poder calcular los totales de la empresa
-        if (isAdmin) {
-            repository.getAllGastos(callback)
-        } else {
-            repository.getMyGastos(userId, callback)
+    private fun actualizarUI() {
+        _gastosGlobales.value = listaMaestra
+        aplicarFiltros()
+
+        val listaDash = listaMaestra
+
+        _totalMes.value = listaDash.sumOf { it.monto ?: 0.0 }
+
+        _totalPendiente.value = listaDash
+            .filter { (it.estado ?: EstadoGasto.PENDIENTE) == EstadoGasto.PENDIENTE }
+            .sumOf { it.monto ?: 0.0 }
+
+        _statsCategorias.value = listaDash
+            .groupBy { it.categoria ?: "Otros" }
+            .mapValues { it.value.sumOf { g -> g.monto ?: 0.0 } }
+
+        _statsEmpleados.value = listaDash
+            .groupBy { it.emailUsuario }
+            .mapValues { it.value.sumOf { g -> g.monto ?: 0.0 } }
+    }
+
+    fun subirGasto(cat: String, fecha: String, imp: Double, com: String, file: File) {
+        val emp = _empleadoSesion.value ?: return
+        _isLoading.value = true
+        viewModelScope.launch {
+            val res = repository.subirGasto(emp.id, emp.seccion, cat, fecha, imp.toString(), com, file)
+            _isLoading.value = false
+            res.onSuccess {
+                _mensajeOp.value = "Subido con éxito"
+                recargarSesion()
+            }.onFailure { _mensajeOp.value = "Error: ${it.message}" }
         }
     }
 
-    // --- ACCIONES ---
-    fun agregarGasto(gasto: Gasto) {
-        val user = auth.currentUser
-        val gastoReal = gasto.copy(userId = user?.uid ?: "", emailUsuario = user?.email ?: "")
-        repository.addGasto(gastoReal, {}, {})
+    fun eliminarGastoIndividual(id: String) {
+        viewModelScope.launch {
+            repository.borrarGasto(id)
+            listaMaestra = listaMaestra.filter { it.id != id }
+            actualizarUI()
+        }
     }
 
-    fun eliminarGastosSeleccionados(ids: List<String>) { ids.forEach { repository.deleteGasto(it) } }
-    fun aprobarGasto(id: String) { if (isAdmin) repository.updateEstado(id, EstadoGasto.APROBADO) }
-    fun rechazarGasto(id: String) { if (isAdmin) repository.updateEstado(id, EstadoGasto.RECHAZADO) }
-    fun eliminarGastoIndividual(id: String) { repository.deleteGasto(id) }
-
-    // --- CÁLCULOS Y ACTUALIZACIÓN ---
-    private fun actualizarUI() {
-        // 1. Actualizamos la lista GLOBAL (Admin Panel la necesita completa)
-        _gastosGlobales.value = listaMaestra
-
-        // 2. Calculamos Totales (Si es Admin, esto suma toda la empresa)
-        _totalMes.value = listaMaestra.sumOf { it.monto }
-        _totalPendiente.value = listaMaestra.filter {
-            it.estado == EstadoGasto.PENDIENTE || it.estado == EstadoGasto.PROCESANDO
-        }.sumOf { it.monto }
-
-        // 3. Estadísticas para Gráficos
-        _statsCategorias.value = listaMaestra.groupBy { it.categoria }
-            .mapValues { entry -> entry.value.sumOf { it.monto } }
-
-        _statsEmpleados.value = listaMaestra.groupBy { it.emailUsuario }
-            .mapValues { entry -> entry.value.sumOf { it.monto } }
-
-        // 4. Actualizar el Historial (Aquí aplicamos el filtro personal)
-        aplicarFiltros()
+    fun eliminarGastosSeleccionados(ids: List<String>) {
+        viewModelScope.launch {
+            ids.forEach { id ->
+                repository.borrarGasto(id)
+                listaMaestra = listaMaestra.filter { it.id != id }
+            }
+            actualizarUI()
+        }
     }
 
-    // --- LÓGICA DE FILTROS (MODIFICADA) ---
+
+    fun enviarReporteFirebase(gasto: Gasto, desc: String) {
+        _mensajeOp.value = "Reporte enviado correctamente"
+    }
+
+    fun limpiarMensaje() { _mensajeOp.value = null }
+
+
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
     fun filtrarPorEstado(e: String) { estadoActual = e; aplicarFiltros() }
-    fun ordenarPorFecha(reciente: Boolean) { ordenMasReciente = reciente; aplicarFiltros() }
+    fun ordenarPorFecha(r: Boolean) { ordenMasReciente = r; aplicarFiltros() }
 
     private fun aplicarFiltros() {
-        var res = listaMaestra
-        val currentUid = auth.currentUser?.uid
+        var lista = listaMaestra
 
-        // --- CAMBIO CLAVE: SIEMPRE FILTRAR POR USUARIO EN EL HISTORIAL ---
-        // Aunque seas Admin y 'listaMaestra' tenga todo, para la pantalla de historial
-        // solo queremos ver TUS gastos.
-        if (currentUid != null) {
-            res = res.filter { it.userId == currentUid }
-        }
-        // ------------------------------------------------------------------
-
-        // Filtro Texto
         if (busquedaActual.isNotEmpty()) {
-            res = res.filter {
-                it.nombreComercio.contains(busquedaActual, true) ||
-                        it.categoria.contains(busquedaActual, true)
-            }
+            lista = lista.filter { it.nombreComercio?.contains(busquedaActual, true) == true }
         }
-        // Filtro Categoría
-        if (categoriaActual != "Todas" && categoriaActual != "Categoría") {
-            res = res.filter { it.categoria.equals(categoriaActual, true) }
-        }
-        // Filtro Estado
-        if (estadoActual != "Todos" && estadoActual != "Estado") {
-            res = res.filter { it.estado.name.equals(estadoActual, true) }
-        }
-        // Orden
-        res = if (ordenMasReciente) res.sortedByDescending { it.timestamp } else res.sortedBy { it.timestamp }
 
-        // Enviamos la lista filtrada (PERSONAL) al Historial
-        _gastosFiltrados.value = res
+        if (categoriaActual != "Todas") {
+            lista = lista.filter { it.categoria?.equals(categoriaActual, true) == true }
+        }
+
+        if (estadoActual != "Todos") {
+            lista = lista.filter { it.estado?.name?.equals(estadoActual, true) == true }
+        }
+
+        lista = if (ordenMasReciente) {
+            lista.sortedByDescending { it.timestamp }
+        } else {
+            lista.sortedBy { it.timestamp }
+        }
+
+        _gastosFiltrados.value = lista
     }
 }

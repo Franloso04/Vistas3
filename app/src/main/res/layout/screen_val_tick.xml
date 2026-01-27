@@ -39,10 +39,26 @@
 
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:layout_marginTop="12dp">
-                <EditText android:id="@+id/editMonto" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1" android:hint="Total" android:text="$ 15.50" />
-                <Spinner android:id="@+id/spinnerCategoria" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:hint="Total"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editMonto" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="$ 15.50" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginStart="8dp"
+                    android:hint="Categoría">
+                    <AutoCompleteTextView
+                        android:id="@+id/autoCompleteCategoria"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
             <Button android:id="@+id/btnConfirmar" android:layout_width="match_parent"

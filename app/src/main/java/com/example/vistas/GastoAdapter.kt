@@ -1,11 +1,10 @@
 package com.example.vistas
 
-import android.animation.ObjectAnimator
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -18,21 +17,23 @@ import com.example.vistas.model.Gasto
 class GastoAdapter(
     private var lista: List<Gasto>,
     var isSelectionMode: Boolean = false,
-    private val onSelectionChanged: () -> Unit
+    private val onSelectionChanged: () -> Unit = {}
 ) : RecyclerView.Adapter<GastoAdapter.GastoVH>() {
 
+
+    constructor(lista: List<Gasto>) : this(lista, false, {})
+
     class GastoVH(view: View) : RecyclerView.ViewHolder(view) {
-        val card: CardView = view.findViewById(R.id.cardRoot) // Referencia a la tarjeta completa
+        val card: CardView = view.findViewById(R.id.cardRoot)
         val comercio: TextView = view.findViewById(R.id.txtComercio)
         val info: TextView = view.findViewById(R.id.txtInfo)
         val monto: TextView = view.findViewById(R.id.txtMonto)
+        val icono: ImageView = view.findViewById(R.id.imgIcono)
 
-        // Elementos de la Pastilla
+        // Estado
         val container: LinearLayout = view.findViewById(R.id.layoutStatus)
         val status: TextView = view.findViewById(R.id.txtStatus)
         val dot: View = view.findViewById(R.id.dotStatus)
-
-        // Checkbox eliminado del ViewHolder porque ya no existe en el XML
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GastoVH {
@@ -44,66 +45,64 @@ class GastoAdapter(
         val gasto = lista[position]
         val ctx = holder.itemView.context
 
-        // Datos básicos
-        holder.comercio.text = gasto.nombreComercio
-        holder.info.text = "${gasto.fecha} • ${gasto.categoria}"
-        holder.monto.text = "$${String.format("%.2f", gasto.monto)}"
 
-        // Diseño de la pastilla de estado
-        configurarEstado(holder, gasto)
+        holder.comercio.text = gasto.nombreComercio ?: "Sin nombre"
+        holder.info.text = "${gasto.fecha ?: ""} • ${gasto.categoria ?: ""}"
+        holder.monto.text = "$${String.format("%.2f", gasto.monto ?: 0.0)}"
 
-        // --- LÓGICA DE SELECCIÓN "PREMIUM" ---
 
-        // 1. Definir colores (Normal vs Seleccionado)
+        val iconRes = when (gasto.categoria) {
+            "Comida" -> R.drawable.ic_food
+            "Transporte" -> R.drawable.ic_transport
+            "Alojamiento" -> R.drawable.ic_hotel
+            "Suministros" -> R.drawable.ic_supply
+            "Equipamiento" -> R.drawable.ic_equip
+            else -> R.drawable.bg_icon_placeholder
+        }
+        holder.icono.setImageResource(iconRes)
+
+
+        val estadoSeguro = gasto.estado ?: EstadoGasto.PENDIENTE
+        configurarEstado(holder, estadoSeguro)
+
+
         val colorNormal = ContextCompat.getColor(ctx, R.color.surface_card)
-        // Usamos un azul muy suave para seleccionado (puedes ajustar el hex o usar un recurso)
-        // En modo noche convendría un gris más claro que el fondo.
-        // Aquí uso un tint del primary_blue con mucha transparencia para que sirva en ambos modos.
         val colorSeleccionado = adjustAlpha(ContextCompat.getColor(ctx, R.color.primary_blue), 0.2f)
 
         if (isSelectionMode) {
-            // CASO A: Gasto APROBADO (Bloqueado)
-            if (gasto.estado == EstadoGasto.APROBADO) {
-                // Se ve normal, un poco más apagado quizás (opcional)
+            if (estadoSeguro == EstadoGasto.APROBADO) {
+
                 holder.card.setCardBackgroundColor(colorNormal)
-                holder.itemView.alpha = 0.5f // Le bajamos la opacidad para indicar que no es editable
-                holder.itemView.scaleX = 1f
-                holder.itemView.scaleY = 1f
-
+                holder.itemView.alpha = 0.5f
                 holder.itemView.setOnClickListener {
-                    Toast.makeText(ctx, "No puedes borrar gastos aprobados", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "No se pueden borrar gastos aprobados", Toast.LENGTH_SHORT).show()
                 }
-            }
-            // CASO B: SELECCIONABLE (Pendiente/Rechazado)
-            else {
-                holder.itemView.alpha = 1f // Opacidad total
+            } else {
+                // Seleccionable
+                holder.itemView.alpha = 1f
+                holder.card.setCardBackgroundColor(if (gasto.isSelected) colorSeleccionado else colorNormal)
 
-                // Si está seleccionado, cambiamos color y tamaño
-                if (gasto.isSelected) {
-                    holder.card.setCardBackgroundColor(colorSeleccionado)
-                    // Efecto "apretado"
-                    holder.itemView.scaleX = 0.95f
-                    holder.itemView.scaleY = 0.95f
-                } else {
-                    holder.card.setCardBackgroundColor(colorNormal)
-                    holder.itemView.scaleX = 1f
-                    holder.itemView.scaleY = 1f
-                }
-
-                // Click Listener con animación
                 holder.itemView.setOnClickListener {
                     gasto.isSelected = !gasto.isSelected
-                    notifyItemChanged(position) // Refrescamos solo este item para que haga la animación
-                    onSelectionChanged()
+                    notifyItemChanged(position)
+                    onSelectionChanged() // Notifica al Fragment
                 }
             }
         } else {
-            // MODO NORMAL (Fuera de selección)
+            // Modo Normal
             holder.card.setCardBackgroundColor(colorNormal)
             holder.itemView.alpha = 1f
-            holder.itemView.scaleX = 1f
-            holder.itemView.scaleY = 1f
-            holder.itemView.setOnClickListener(null) // O abrir detalle si tuvieras
+            holder.itemView.setOnClickListener {
+                // Aquí podrías abrir el detalle si quisieras
+                if (!isSelectionMode) {
+                    // Activar selección con click largo es habitual, o un botón en el fragment
+                    // De momento lo dejamos vacío o para activar selección manual desde fragment
+                }
+            }
+            holder.itemView.setOnLongClickListener {
+                onSelectionChanged() // Truco: Iniciar selección con long click
+                true
+            }
         }
     }
 
@@ -114,34 +113,40 @@ class GastoAdapter(
         notifyDataSetChanged()
     }
 
+
+    fun updateList(nueva: List<Gasto>) = updateData(nueva)
+
+
+
     fun activarModoSeleccion(activar: Boolean) {
         isSelectionMode = activar
-        if (activar) {
-            lista.forEach { if (it.estado == EstadoGasto.APROBADO) it.isSelected = false }
-        } else {
+        if (!activar) {
             lista.forEach { it.isSelected = false }
         }
         notifyDataSetChanged()
     }
 
-    fun getSelectedCount() = lista.count { it.isSelected }
-    fun getSelectedIds() = lista.filter { it.isSelected }.map { it.id }
-
-    // Función auxiliar para crear un color transparente basado en otro
-    private fun adjustAlpha(color: Int, factor: Float): Int {
-        val alpha = Math.round(Color.alpha(color) * factor)
-        val red = Color.red(color)
-        val green = Color.green(color)
-        val blue = Color.blue(color)
-        return Color.argb(alpha, red, green, blue)
+    fun getSelectedCount(): Int {
+        return lista.count { it.isSelected }
     }
 
-    private fun configurarEstado(holder: GastoVH, gasto: Gasto) {
+    fun getSelectedIds(): List<String> {
+        return lista.filter { it.isSelected }.map { it.id }
+    }
+
+
+
+    private fun adjustAlpha(color: Int, factor: Float): Int {
+        val alpha = Math.round(Color.alpha(color) * factor)
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
+    }
+
+    private fun configurarEstado(holder: GastoVH, estado: EstadoGasto) {
         val ctx = holder.itemView.context
-        val (bg, txt, dotDraw, label) = when (gasto.estado) {
+        val (bg, txt, dotDraw, label) = when (estado) {
             EstadoGasto.APROBADO -> Quad(R.color.status_approved_bg, R.color.status_approved_text, R.drawable.dot_green, "APROBADO")
             EstadoGasto.RECHAZADO -> Quad(R.color.status_rejected_bg, R.color.status_rejected_text, R.drawable.dot_red, "RECHAZADO")
-            else -> Quad(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, if(gasto.estado==EstadoGasto.PROCESANDO) "PROCESANDO" else "PENDIENTE")
+            else -> Quad(R.color.status_pending_bg, R.color.status_pending_text, R.drawable.dot_amber, if(estado==EstadoGasto.PROCESANDO) "PROCESANDO" else "PENDIENTE")
         }
 
         holder.container.backgroundTintList = ContextCompat.getColorStateList(ctx, bg)
@@ -151,6 +156,5 @@ class GastoAdapter(
         holder.dot.visibility = View.VISIBLE
     }
 
-    // Clase simple para devolver 4 valores
     data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 }

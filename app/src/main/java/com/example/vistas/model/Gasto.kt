@@ -1,16 +1,24 @@
 package com.example.vistas.model
 
-enum class EstadoGasto { APROBADO, PENDIENTE, RECHAZADO, PROCESANDO }
+import com.google.gson.annotations.SerializedName
+
+enum class EstadoGasto {
+    @SerializedName("pendiente") PENDIENTE,
+    @SerializedName("aprobado") APROBADO,
+    @SerializedName("rechazado") RECHAZADO,
+    @SerializedName("procesando") PROCESANDO
+}
 
 data class Gasto(
-    val id: String = "",
-    val userId: String = "",
-    val emailUsuario: String = "",
-    val nombreComercio: String = "",
-    val fecha: String = "",
-    val categoria: String = "",
-    val monto: Double = 0.0,
-    val estado: EstadoGasto = EstadoGasto.PROCESANDO,
-    val timestamp: Long = System.currentTimeMillis(), // Para ordenar
-    var isSelected: Boolean = false // Ignorado por Firebase normalmente
+    @SerializedName("id") val id: String,
+    @SerializedName("id_empleado") val userId: String,
+    @SerializedName("email") val emailUsuario: String? = "",
+    @SerializedName("nombreComercio") val nombreComercio: String?,
+    @SerializedName("fecha") val fecha: String?,
+    @SerializedName("categoria") val categoria: String?,
+    @SerializedName("importe") val monto: Double?,
+    @SerializedName("url_ticket") val imagenUrl: String? = "",
+    @SerializedName("estado") val estado: EstadoGasto? = EstadoGasto.PENDIENTE,
+    val timestamp: Long = 0L,
+    var isSelected: Boolean = false
 )

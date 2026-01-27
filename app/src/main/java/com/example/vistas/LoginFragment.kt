@@ -1,58 +1,55 @@
 package com.example.vistas
 
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.textfield.TextInputEditText
-import com.google.firebase.auth.FirebaseAuth
 
 class LoginFragment : Fragment(R.layout.screen_log_empl) {
 
-    private val auth = FirebaseAuth.getInstance()
-    // Conectamos con el mismo ViewModel que usa el resto de la app
     private val viewModel: MainViewModel by activityViewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Si ya estaba logueado de antes, avisamos al VM y entramos
-        if (auth.currentUser != null) {
-            viewModel.recargarSesion()
-            navegarAlDestino()
-            return
-        }
-
-        val editEmail = view.findViewById<TextInputEditText>(R.id.editEmail)
-        val editPass = view.findViewById<TextInputEditText>(R.id.editPassword)
+        val etEmail = view.findViewById<EditText>(R.id.editEmail)
+        val etPass = view.findViewById<EditText>(R.id.editPassword)
         val btnLogin = view.findViewById<Button>(R.id.btnIniciarSesion)
 
+        // Observamos si el empleado se ha logueado correctamente
+        viewModel.empleadoSesion.observe(viewLifecycleOwner) { empleado ->
+            if (empleado != null) {
+
+                // --- NUEVO: GUARDAR FECHA DE LOGIN (Para caducidad en 5 días) ---
+                val sharedPrefs = requireActivity().getSharedPreferences("AppConfig", Context.MODE_PRIVATE)
+                sharedPrefs.edit().putLong("LAST_LOGIN_TIMESTAMP", System.currentTimeMillis()).apply()
+                // ---------------------------------------------------------------
+
+                findNavController().navigate(R.id.action_login_to_dashboard)
+            }
+        }
+
+        viewModel.mensajeOp.observe(viewLifecycleOwner) { msg ->
+            if (!msg.isNullOrEmpty()) {
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                viewModel.limpiarMensaje()
+            }
+        }
+
         btnLogin.setOnClickListener {
-            val email = editEmail.text.toString().trim()
-            val pass = editPass.text.toString().trim()
+            val email = etEmail.text.toString().trim()
+            val pass = etPass.text.toString().trim()
 
             if (email.isNotEmpty() && pass.isNotEmpty()) {
-                auth.signInWithEmailAndPassword(email, pass)
-                    .addOnSuccessListener {
-                        // ¡IMPORTANTE! Aquí despertamos al ViewModel
-                        viewModel.recargarSesion()
-                        navegarAlDestino()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_SHORT).show()
-                    }
+                viewModel.realizarLogin(email, pass)
             } else {
                 Toast.makeText(context, "Rellena los campos", Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    private fun navegarAlDestino() {
-        // Navega siempre al dashboard, el ViewModel ya sabe si eres admin o no
-        // y cargará los datos correspondientes.
-        findNavController().navigate(R.id.action_login_to_dashboard)
     }
 }
