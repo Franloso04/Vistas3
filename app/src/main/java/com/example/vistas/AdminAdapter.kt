@@ -33,7 +33,7 @@ class AdminAdapter(
         val gasto = lista[position]
         holder.txtComercio.text = gasto.nombreComercio
         holder.txtMonto.text = "${gasto.monto}€"
-        holder.txtUsuario.text = gasto.emailUsuario.ifEmpty { "ID: ${gasto.userId}" }
+        holder.txtUsuario.text = if (gasto.emailUsuario.isNullOrEmpty()) "ID: ${gasto.userId}" else gasto.emailUsuario
 
         holder.btnAprobar.setOnClickListener { onAprobar(gasto) }
         holder.btnRechazar.setOnClickListener { onRechazar(gasto) }

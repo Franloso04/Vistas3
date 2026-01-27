@@ -1,10 +1,10 @@
 package com.example.vistas.data.api
 
-import com.example.vistas.model.Gasto
 import com.example.vistas.model.GastoResponse
 import com.example.vistas.model.LoginResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -32,15 +32,15 @@ interface ApiService {
         @Part ticket: MultipartBody.Part
     ): Response<GastoResponse>
 
-    // Necesario para tu Dashboard y AdminFragment
+    // --- CORRECCIÓN: Añadido id_empleado OBLIGATORIO ---
     @FormUrlEncoded
     @POST("gastos.php")
     suspend fun obtenerGastos(
-        @Field("action") action: String = "listar_todos",
-        @Field("token") token: String
-    ): Response<List<Gasto>>
+        @Field("action") action: String = "listar",
+        @Field("token") token: String,
+        @Field("id_empleado") idEmpleado: String // <--- ESTO FALTABA
+    ): Response<ResponseBody>
 
-    // Necesario para aprobar/rechazar en AdminFragment
     @FormUrlEncoded
     @POST("gastos.php")
     suspend fun actualizarEstado(

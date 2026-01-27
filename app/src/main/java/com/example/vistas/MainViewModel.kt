@@ -16,22 +16,21 @@ class MainViewModel : ViewModel() {
 
     private val repository = AppRepository()
 
-    // SESIÓN
+    // --- SESIÓN ---
     private val _empleadoSesion = MutableLiveData<Empleado?>()
     val empleadoSesion: LiveData<Empleado?> = _empleadoSesion
     var isAdmin = false
         private set
 
-    // UI STATES
+    // --- UI STATES ---
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
     private val _mensajeOp = MutableLiveData<String?>()
     val mensajeOp: LiveData<String?> = _mensajeOp
 
-    // DATOS
+    // --- DATOS ---
     private var listaMaestra: List<Gasto> = emptyList()
 
-    // LiveData para Fragments
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
     val gastosGlobales: LiveData<List<Gasto>> = _gastosGlobales
 
@@ -41,15 +40,15 @@ class MainViewModel : ViewModel() {
     private val _reportes = MutableLiveData<List<Reporte>>()
     val reportes: LiveData<List<Reporte>> = _reportes
 
-    // Dashboard
+    // Totales Dashboard
     private val _totalMes = MutableLiveData<Double>(0.0)
     val totalMes: LiveData<Double> = _totalMes
     private val _totalPendiente = MutableLiveData<Double>(0.0)
     val totalPendiente: LiveData<Double> = _totalPendiente
     private val _statsCategorias = MutableLiveData<Map<String, Double>>()
     val statsCategorias: LiveData<Map<String, Double>> = _statsCategorias
-    private val _statsEmpleados = MutableLiveData<Map<String, Double>>()
-    val statsEmpleados: LiveData<Map<String, Double>> = _statsEmpleados
+    private val _statsEmpleados = MutableLiveData<Map<String?, Double>>()
+    val statsEmpleados: LiveData<Map<String?, Double>> = _statsEmpleados
 
     // Filtros
     private var busquedaActual = ""
@@ -57,7 +56,7 @@ class MainViewModel : ViewModel() {
     private var estadoActual = "Todos"
     private var ordenMasReciente = true
 
-    // --- SESIÓN ---
+    // --- LOGIN ---
     fun realizarLogin(email: String, pass: String) {
         _isLoading.value = true
         viewModelScope.launch {
@@ -66,7 +65,9 @@ class MainViewModel : ViewModel() {
             res.onSuccess { emp ->
                 setEmpleadoSesion(emp)
                 _mensajeOp.value = "Bienvenido ${emp.nombre}"
-            }.onFailure { _mensajeOp.value = "Error: ${it.message}" }
+            }.onFailure {
+                _mensajeOp.value = "Error: ${it.message}"
+            }
         }
     }
 
@@ -82,10 +83,15 @@ class MainViewModel : ViewModel() {
         actualizarUI()
     }
 
+    // --- CORRECCIÓN: Pasar ID al Repositorio ---
     fun recargarSesion() {
+        val empId = _empleadoSesion.value?.id ?: return // Si no hay usuario, no cargamos nada
+
         viewModelScope.launch {
-            listaMaestra = repository.getGastos()
+            // Llamamos a getGastos pasando el ID
+            listaMaestra = repository.getGastos(empId)
             actualizarUI()
+
             if (isAdmin) repository.getReportes { _reportes.value = it }
         }
     }
@@ -110,7 +116,7 @@ class MainViewModel : ViewModel() {
             val res = repository.subirGasto(emp.id, emp.seccion, cat, fecha, imp.toString(), com, file)
             _isLoading.value = false
             res.onSuccess {
-                _mensajeOp.value = "Subido OK"
+                _mensajeOp.value = "Subido con éxito"
                 recargarSesion()
             }.onFailure { _mensajeOp.value = "Error: ${it.message}" }
         }
@@ -122,10 +128,7 @@ class MainViewModel : ViewModel() {
 
     fun eliminarGastosSeleccionados(ids: List<String>) {
         viewModelScope.launch {
-            _isLoading.value = true
             ids.forEach { repository.borrarGasto(it) }
-            _isLoading.value = false
-            _mensajeOp.value = "Gastos eliminados"
             recargarSesion()
         }
     }
@@ -150,7 +153,11 @@ class MainViewModel : ViewModel() {
     private fun aplicarFiltros() {
         var lista = listaMaestra
         val empId = _empleadoSesion.value?.id
-        if (!isAdmin && empId != null) lista = lista.filter { it.userId == empId }
+
+        // Si no es Admin, filtramos solo lo suyo (aunque la API ya filtra, lo mantenemos por seguridad)
+        if (!isAdmin && empId != null) {
+            lista = lista.filter { it.userId == empId }
+        }
 
         if (busquedaActual.isNotEmpty()) lista = lista.filter { it.nombreComercio.contains(busquedaActual, true) }
         if (categoriaActual != "Todas") lista = lista.filter { it.categoria.equals(categoriaActual, true) }

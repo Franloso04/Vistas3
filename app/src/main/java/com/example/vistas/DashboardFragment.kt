@@ -83,7 +83,7 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
                     agregarFila(layoutListEmpleados, "Sin datos de empleados", "")
                 } else {
                     mapa.entries.sortedByDescending { it.value }.forEach { (email, monto) ->
-                        val nombre = email.substringBefore("@")
+                        val nombre = (email ?: "Desconocido").substringBefore("@")
                             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                         // Aquí NO pasamos índice (-1 por defecto), así que no sale puntito
                         agregarFila(layoutListEmpleados, nombre, formatoMoneda(monto))

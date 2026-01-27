@@ -3,7 +3,7 @@ package com.example.vistas.model
 import com.google.gson.annotations.SerializedName
 
 enum class EstadoGasto {
-    PENDIENTE, APROBADO, RECHAZADO
+    PENDIENTE, APROBADO, RECHAZADO, PROCESANDO
 }
 
 data class Gasto(
@@ -11,7 +11,7 @@ data class Gasto(
 
     // Tu UI busca 'emailUsuario' en AdminAdapter.kt
     // Usamos @SerializedName para leer el campo 'email' del JSON y meterlo en 'emailUsuario'
-    @SerializedName("email") val emailUsuario: String = "",
+    @SerializedName("email") val emailUsuario: String? = "",
 
     @SerializedName("id_empleado") val userId: String,
     @SerializedName("nombreComercio") val nombreComercio: String,
