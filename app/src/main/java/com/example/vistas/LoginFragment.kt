@@ -1,5 +1,6 @@
 package com.example.vistas
 
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -20,13 +21,18 @@ class LoginFragment : Fragment(R.layout.screen_log_empl) {
         val etPass = view.findViewById<EditText>(R.id.editPassword)
         val btnLogin = view.findViewById<Button>(R.id.btnIniciarSesion)
 
-
+        // Observamos si el empleado se ha logueado correctamente
         viewModel.empleadoSesion.observe(viewLifecycleOwner) { empleado ->
             if (empleado != null) {
-                findNavController().navigate(R.id.action_login_to_dashboard) // Asegúrate que este ID existe en tu nav_graph
+
+                // --- NUEVO: GUARDAR FECHA DE LOGIN (Para caducidad en 5 días) ---
+                val sharedPrefs = requireActivity().getSharedPreferences("AppConfig", Context.MODE_PRIVATE)
+                sharedPrefs.edit().putLong("LAST_LOGIN_TIMESTAMP", System.currentTimeMillis()).apply()
+                // ---------------------------------------------------------------
+
+                findNavController().navigate(R.id.action_login_to_dashboard)
             }
         }
-
 
         viewModel.mensajeOp.observe(viewLifecycleOwner) { msg ->
             if (!msg.isNullOrEmpty()) {

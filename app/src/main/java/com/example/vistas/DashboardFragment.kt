@@ -16,7 +16,6 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
 
     private val viewModel: MainViewModel by activityViewModels()
 
-
     private val coloresGrafico = listOf(
         "#2563EB", // Azul
         "#10B981", // Verde
@@ -30,7 +29,6 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-
         val txtTotalMes = view.findViewById<TextView>(R.id.txtTotalMes)
         val txtTotalPendiente = view.findViewById<TextView>(R.id.txtTotalPendiente)
 
@@ -42,7 +40,6 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
         val layoutListCategorias = view.findViewById<LinearLayout>(R.id.layoutStatsCategorias)
         val layoutListEmpleados = view.findViewById<LinearLayout>(R.id.layoutStatsEmpleados)
 
-
         viewModel.totalMes.observe(viewLifecycleOwner) {
             txtTotalMes.text = formatoMoneda(it ?: 0.0)
         }
@@ -50,7 +47,7 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
             txtTotalPendiente.text = formatoMoneda(it ?: 0.0)
         }
 
-
+        // Mostrar siempre gráficos y categorías
         layoutGrafico.visibility = View.VISIBLE
         sectionCategorias.visibility = View.VISIBLE
 
@@ -61,10 +58,8 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
             if (mapa.isNullOrEmpty()) {
                 agregarFila(layoutListCategorias, "Sin gastos registrados", "")
             } else {
-
                 var index = 0
                 mapa.entries.sortedByDescending { it.value }.forEach { (cat, monto) ->
-
                     agregarFila(layoutListCategorias, cat, formatoMoneda(monto), index)
                     index++
                 }
@@ -72,27 +67,26 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
         }
 
 
-        if (viewModel.isAdmin) {
-            sectionEmpleados.visibility = View.VISIBLE
+        sectionEmpleados.visibility = View.VISIBLE
 
-            viewModel.statsEmpleados.observe(viewLifecycleOwner) { mapa ->
-                layoutListEmpleados.removeAllViews()
-                if (mapa.isNullOrEmpty()) {
-                    agregarFila(layoutListEmpleados, "Sin datos de empleados", "")
-                } else {
-                    mapa.entries.sortedByDescending { it.value }.forEach { (email, monto) ->
-                        val nombre = (email ?: "Desconocido").substringBefore("@")
-                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                        // Aquí NO pasamos índice (-1 por defecto), así que no sale puntito
-                        agregarFila(layoutListEmpleados, nombre, formatoMoneda(monto))
-                    }
+        viewModel.statsEmpleados.observe(viewLifecycleOwner) { mapa ->
+            layoutListEmpleados.removeAllViews()
+            if (mapa.isNullOrEmpty()) {
+                // Si no hay datos, ocultamos la sección
+                sectionEmpleados.visibility = View.GONE
+            } else {
+                sectionEmpleados.visibility = View.VISIBLE
+
+                mapa.entries.sortedByDescending { it.value }.forEach { (email, monto) ->
+                    val nombre = (email ?: "Desconocido").substringBefore("@")
+                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+
+                    // Mostramos la fila sin el puntito de color (index -1)
+                    agregarFila(layoutListEmpleados, nombre, formatoMoneda(monto))
                 }
             }
-        } else {
-            sectionEmpleados.visibility = View.GONE
         }
     }
-
 
     private fun agregarFila(
         parent: LinearLayout,
@@ -110,7 +104,6 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
         row.setPadding(0, 16, 0, 16)
         row.gravity = Gravity.CENTER_VERTICAL
 
-
         if (indexColor >= 0) {
             val dot = View(context)
             val size = (10 * context.resources.displayMetrics.density).toInt() // 10dp
@@ -118,9 +111,7 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
             params.marginEnd = (12 * context.resources.displayMetrics.density).toInt() // Margen derecho
             dot.layoutParams = params
 
-
             dot.background = ContextCompat.getDrawable(context, R.drawable.dot_green)
-
 
             val colorHex = coloresGrafico[indexColor % coloresGrafico.size]
             dot.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor(colorHex))
@@ -128,13 +119,11 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
             row.addView(dot)
         }
 
-
         val tvIzq = TextView(context)
         tvIzq.text = textoIzq
         tvIzq.textSize = 14f
         tvIzq.setTextColor(ContextCompat.getColor(context, R.color.text_main))
         tvIzq.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-
 
         val tvDer = TextView(context)
         tvDer.text = textoDerecha
@@ -146,7 +135,6 @@ class DashboardFragment : Fragment(R.layout.screen_dash_gast) {
         row.addView(tvIzq)
         row.addView(tvDer)
         parent.addView(row)
-
 
         val line = View(context)
         line.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)

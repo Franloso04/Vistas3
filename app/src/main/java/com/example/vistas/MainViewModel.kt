@@ -8,7 +8,6 @@ import com.example.vistas.data.repository.AppRepository
 import com.example.vistas.model.Empleado
 import com.example.vistas.model.EstadoGasto
 import com.example.vistas.model.Gasto
-import com.example.vistas.model.Reporte
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -16,16 +15,17 @@ class MainViewModel : ViewModel() {
 
     private val repository = AppRepository()
 
+    // Sesión
     private val _empleadoSesion = MutableLiveData<Empleado?>()
     val empleadoSesion: LiveData<Empleado?> = _empleadoSesion
-    var isAdmin = false
-        private set
 
+    // Estado UI
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
     private val _mensajeOp = MutableLiveData<String?>()
     val mensajeOp: LiveData<String?> = _mensajeOp
 
+    // Datos
     private var listaMaestra: List<Gasto> = emptyList()
 
     private val _gastosGlobales = MutableLiveData<List<Gasto>>()
@@ -34,11 +34,9 @@ class MainViewModel : ViewModel() {
     private val _gastosFiltrados = MutableLiveData<List<Gasto>>()
     val gastosFiltrados: LiveData<List<Gasto>> = _gastosFiltrados
 
-    private val _reportes = MutableLiveData<List<Reporte>>()
-    val reportes: LiveData<List<Reporte>> = _reportes
 
-    private val _reportesLocales = mutableListOf<Reporte>()
 
+    // Dashboard
     private val _totalMes = MutableLiveData<Double>(0.0)
     val totalMes: LiveData<Double> = _totalMes
     private val _totalPendiente = MutableLiveData<Double>(0.0)
@@ -48,6 +46,7 @@ class MainViewModel : ViewModel() {
     private val _statsEmpleados = MutableLiveData<Map<String?, Double>>()
     val statsEmpleados: LiveData<Map<String?, Double>> = _statsEmpleados
 
+    // Filtros
     private var busquedaActual = ""
     private var categoriaActual = "Todas"
     private var estadoActual = "Todos"
@@ -69,7 +68,6 @@ class MainViewModel : ViewModel() {
 
     fun setEmpleadoSesion(empleado: Empleado) {
         _empleadoSesion.value = empleado
-        isAdmin = (empleado.privilegios == "1" || empleado.privilegiosGlobales == "1")
         recargarSesion()
     }
 
@@ -85,10 +83,6 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             listaMaestra = repository.getGastos(empId)
             actualizarUI()
-
-            if (isAdmin) {
-                _reportes.value = _reportesLocales.toList()
-            }
         }
     }
 
@@ -96,7 +90,7 @@ class MainViewModel : ViewModel() {
         _gastosGlobales.value = listaMaestra
         aplicarFiltros()
 
-        val listaDash = if(isAdmin) listaMaestra else listaMaestra.filter { it.userId == _empleadoSesion.value?.id }
+        val listaDash = listaMaestra
 
         _totalMes.value = listaDash.sumOf { it.monto ?: 0.0 }
 
@@ -126,9 +120,6 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun aprobarGasto(id: String) { viewModelScope.launch { repository.cambiarEstado(id, EstadoGasto.APROBADO); recargarSesion() } }
-    fun rechazarGasto(id: String) { viewModelScope.launch { repository.cambiarEstado(id, EstadoGasto.RECHAZADO); recargarSesion() } }
-
     fun eliminarGastoIndividual(id: String) {
         viewModelScope.launch {
             repository.borrarGasto(id)
@@ -147,26 +138,13 @@ class MainViewModel : ViewModel() {
         }
     }
 
+
     fun enviarReporteFirebase(gasto: Gasto, desc: String) {
-        val reporte = Reporte(
-            id = System.currentTimeMillis().toString(),
-            gastoId = gasto.id,
-            descripcion = desc,
-            comercio = gasto.nombreComercio ?: "Comercio",
-            emailUsuario = _empleadoSesion.value?.email ?: "usuario"
-        )
-        _reportesLocales.add(0, reporte)
-        if (isAdmin) _reportes.value = _reportesLocales.toList()
-        _mensajeOp.value = "Reporte registrado"
+        _mensajeOp.value = "Reporte enviado correctamente"
     }
 
-    fun eliminarReporte(id: String) {
-        _reportesLocales.removeAll { it.id == id }
-        _reportes.value = _reportesLocales.toList()
-    }
-
-    fun tieneIncidencia(gastoId: String): Reporte? = _reportesLocales.find { it.gastoId == gastoId }
     fun limpiarMensaje() { _mensajeOp.value = null }
+
 
     fun filtrarPorTexto(q: String) { busquedaActual = q; aplicarFiltros() }
     fun filtrarPorCategoria(c: String) { categoriaActual = c; aplicarFiltros() }
@@ -175,11 +153,6 @@ class MainViewModel : ViewModel() {
 
     private fun aplicarFiltros() {
         var lista = listaMaestra
-        val empId = _empleadoSesion.value?.id
-
-        if (!isAdmin && empId != null) {
-            lista = lista.filter { it.userId == empId }
-        }
 
         if (busquedaActual.isNotEmpty()) {
             lista = lista.filter { it.nombreComercio?.contains(busquedaActual, true) == true }
