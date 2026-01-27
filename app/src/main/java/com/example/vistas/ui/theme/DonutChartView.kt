@@ -16,7 +16,7 @@ class DonutChartView @JvmOverloads constructor(
     private val rect = RectF()
     private var slices: List<Pair<Float, Int>> = emptyList()
 
-    // MISMA LISTA DE COLORES QUE EN DASHBOARD FRAGMENT PARA QUE COINCIDAN
+
     private val colors = listOf(
         Color.parseColor("#2563EB"), // Azul
         Color.parseColor("#10B981"), // Verde
@@ -44,8 +44,7 @@ class DonutChartView @JvmOverloads constructor(
         val newSlices = mutableListOf<Pair<Float, Int>>()
         var colorIndex = 0
 
-        // IMPORTANTE: Ordenamos los datos de MAYOR a MENOR igual que en la lista del Dashboard.
-        // Así el color del primer item de la lista será el mismo que el segmento más grande.
+
         data.entries.sortedByDescending { it.value }.forEach { (_, monto) ->
             val sweepAngle = (monto.toFloat() / total) * 360f
 
@@ -70,15 +69,13 @@ class DonutChartView @JvmOverloads constructor(
         val padding = strokeWidth / 2
         rect.set(padding, padding, width - padding, height - padding)
 
-        // Empezamos a las 12 en punto (-90 grados)
+
         var currentAngle = -90f
 
         slices.forEach { (sweep, color) ->
             paint.color = color
 
-            // Pequeño truco visual: Si quieres que se vean separados, resta 2 grados al sweep
-            // Si prefieres que estén pegados (continuo), deja el sweep tal cual.
-            // Aquí lo dejo continuo para máxima precisión:
+
             canvas.drawArc(rect, currentAngle, sweep, false, paint)
 
             currentAngle += sweep

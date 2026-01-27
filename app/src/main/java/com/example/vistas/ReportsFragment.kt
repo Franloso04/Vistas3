@@ -24,13 +24,12 @@ class ReportsFragment : Fragment(R.layout.screen_report) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1. Vinculamos las vistas con el XML nuevo
-        // Fíjate que buscamos 'autoCompleteTickets', no 'spinnerTickets'
+
         dropdownMenu = view.findViewById(R.id.autoCompleteTickets)
         val etDescripcion = view.findViewById<EditText>(R.id.etDescripcion)
         val btnEnviar = view.findViewById<Button>(R.id.btnEnviarReporte)
 
-        // 2. Cargamos los tickets en el menú desplegable
+        // Cargamos los tickets
         viewModel.gastosFiltrados.observe(viewLifecycleOwner) { gastos ->
             listaGastosActual = gastos
 
@@ -41,7 +40,7 @@ class ReportsFragment : Fragment(R.layout.screen_report) {
                 dropdownMenu.isEnabled = true
                 dropdownMenu.setText("Toca para seleccionar...", false)
 
-                // Texto bonito para la lista
+                // Texto lista
                 val opciones = gastos.map {
                     "${it.nombreComercio} ($${it.monto}) - ${it.fecha}"
                 }
@@ -57,7 +56,7 @@ class ReportsFragment : Fragment(R.layout.screen_report) {
             }
         }
 
-        // 3. BOTÓN ENVIAR: AHORA SÍ FUNCIONA
+
         btnEnviar.setOnClickListener {
             val descripcion = etDescripcion.text.toString().trim()
 
@@ -71,13 +70,12 @@ class ReportsFragment : Fragment(R.layout.screen_report) {
                 return@setOnClickListener
             }
 
-            // --- AQUÍ ESTÁ LA MAGIA ---
-            // Llamamos a la función del ViewModel que creamos en el Paso 2
+
             viewModel.enviarReporteFirebase(gastoSeleccionado!!, descripcion)
 
             Toast.makeText(context, "Reporte enviado correctamente", Toast.LENGTH_LONG).show()
 
-            // Volvemos atrás
+
             findNavController().navigateUp()
         }
     }

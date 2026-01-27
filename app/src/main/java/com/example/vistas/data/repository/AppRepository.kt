@@ -21,7 +21,6 @@ class AppRepository {
     private val api = RetrofitClient.instance
     private val gson = Gson()
 
-    // Tokens corregidos (Largo en ambos)
     private val T_LOGIN = "C2bbCO18omyhKbUQvha38IqZsdtElOzHSjGe57y36R4wpZ8hgbLjtVohul0fCxrg"
     private val T_GASTOS = "C2bbCO18omyhKbUQvha38IqZsdtElOzHSjGe57y36R4wpZ8hgbLjtVohul0fCxrg"
 
@@ -35,7 +34,6 @@ class AppRepository {
         } catch (e: Exception) { Result.failure(e) }
     }
 
-    // --- CORRECCIÓN: getGastos ahora pide el ID ---
     suspend fun getGastos(empId: String): List<Gasto> {
         return try {
             // Enviamos el ID a la API

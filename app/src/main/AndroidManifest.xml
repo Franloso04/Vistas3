@@ -42,7 +42,6 @@
             <meta-data
                 android:name="android.support.FILE_PATHS"
                 android:resource="@xml/file_paths" />
-            <!-- Añadimos también esta por si acaso según tu error -->
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />

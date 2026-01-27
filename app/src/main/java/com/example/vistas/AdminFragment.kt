@@ -28,7 +28,7 @@ class AdminFragment : Fragment(R.layout.screen_admin) {
         )
         recyclerGastos.adapter = adapterGastos
 
-        // RecyclerView Reportes (Si existe en el XML)
+
         val recyclerReportes = view.findViewById<RecyclerView>(R.id.recyclerReportes)
         if (recyclerReportes != null) {
             recyclerReportes.layoutManager = LinearLayoutManager(context)

@@ -22,7 +22,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
     private val viewModel: MainViewModel by activityViewModels()
     private lateinit var adapter: GastoAdapter
 
-    // Referencias a los botones nuevos
+
     private lateinit var btnMode: FloatingActionButton
     private lateinit var btnAction: ExtendedFloatingActionButton
 
@@ -35,11 +35,11 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
         val chipCategoria = view.findViewById<Chip>(R.id.chipCategoria)
         val chipEstado = view.findViewById<Chip>(R.id.chipEstado)
 
-        // Enlazar botones
+
         btnMode = view.findViewById(R.id.btnModeSwitch)
         btnAction = view.findViewById(R.id.btnMainAction)
 
-        // Configurar Adapter
+
         adapter = GastoAdapter(emptyList(), isSelectionMode = false) {
             actualizarBotonAccion()
         }
@@ -47,7 +47,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
         recycler.layoutManager = LinearLayoutManager(context)
         recycler.adapter = adapter
 
-        // --- SOLUCIÓN DE RENDIMIENTO (SKIPPED FRAMES) ---
+
         recycler.setHasFixedSize(true)
         recycler.setItemViewCacheSize(20)
 
@@ -55,7 +55,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             adapter.updateData(lista)
         }
 
-        // --- LISTENERS ---
+
 
         btnMode.setOnClickListener {
             val nuevoModo = !adapter.isSelectionMode
@@ -71,7 +71,7 @@ class ExpensesFragment : Fragment(R.layout.screen_hist_gast) {
             }
         }
 
-        // Filtros
+
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { viewModel.filtrarPorTexto(s.toString()) }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}

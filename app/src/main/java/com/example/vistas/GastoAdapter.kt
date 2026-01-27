@@ -20,7 +20,7 @@ class GastoAdapter(
     private val onSelectionChanged: () -> Unit = {}
 ) : RecyclerView.Adapter<GastoAdapter.GastoVH>() {
 
-    // Constructor secundario para inicialización simple
+
     constructor(lista: List<Gasto>) : this(lista, false, {})
 
     class GastoVH(view: View) : RecyclerView.ViewHolder(view) {
@@ -45,12 +45,12 @@ class GastoAdapter(
         val gasto = lista[position]
         val ctx = holder.itemView.context
 
-        // 1. Textos (Protegidos contra null)
+
         holder.comercio.text = gasto.nombreComercio ?: "Sin nombre"
         holder.info.text = "${gasto.fecha ?: ""} • ${gasto.categoria ?: ""}"
         holder.monto.text = "$${String.format("%.2f", gasto.monto ?: 0.0)}"
 
-        // 2. Iconos
+
         val iconRes = when (gasto.categoria) {
             "Comida" -> R.drawable.ic_food
             "Transporte" -> R.drawable.ic_transport
@@ -61,17 +61,17 @@ class GastoAdapter(
         }
         holder.icono.setImageResource(iconRes)
 
-        // 3. Estado (Protegido contra null)
+
         val estadoSeguro = gasto.estado ?: EstadoGasto.PENDIENTE
         configurarEstado(holder, estadoSeguro)
 
-        // 4. Lógica de Selección
+
         val colorNormal = ContextCompat.getColor(ctx, R.color.surface_card)
         val colorSeleccionado = adjustAlpha(ContextCompat.getColor(ctx, R.color.primary_blue), 0.2f)
 
         if (isSelectionMode) {
             if (estadoSeguro == EstadoGasto.APROBADO) {
-                // Bloqueado
+
                 holder.card.setCardBackgroundColor(colorNormal)
                 holder.itemView.alpha = 0.5f
                 holder.itemView.setOnClickListener {
@@ -113,10 +113,10 @@ class GastoAdapter(
         notifyDataSetChanged()
     }
 
-    // Compatibilidad
+
     fun updateList(nueva: List<Gasto>) = updateData(nueva)
 
-    // --- MÉTODOS QUE FALTABAN Y CAUSABAN EL ERROR ---
+
 
     fun activarModoSeleccion(activar: Boolean) {
         isSelectionMode = activar
@@ -134,7 +134,7 @@ class GastoAdapter(
         return lista.filter { it.isSelected }.map { it.id }
     }
 
-    // --- FUNCIONES AUXILIARES ---
+
 
     private fun adjustAlpha(color: Int, factor: Float): Int {
         val alpha = Math.round(Color.alpha(color) * factor)

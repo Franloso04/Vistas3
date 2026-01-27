@@ -20,14 +20,14 @@ class LoginFragment : Fragment(R.layout.screen_log_empl) {
         val etPass = view.findViewById<EditText>(R.id.editPassword)
         val btnLogin = view.findViewById<Button>(R.id.btnIniciarSesion)
 
-        // Observar si el login fue exitoso para navegar
+
         viewModel.empleadoSesion.observe(viewLifecycleOwner) { empleado ->
             if (empleado != null) {
                 findNavController().navigate(R.id.action_login_to_dashboard) // Asegúrate que este ID existe en tu nav_graph
             }
         }
 
-        // Observar mensajes de error/éxito
+
         viewModel.mensajeOp.observe(viewLifecycleOwner) { msg ->
             if (!msg.isNullOrEmpty()) {
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()

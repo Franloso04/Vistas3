@@ -103,7 +103,7 @@ class OcrFragment : Fragment(R.layout.fragment_ocr_validation) {
         viewModel.mensajeOp.observe(viewLifecycleOwner) { msg ->
             if (msg != null) {
                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                if (msg.contains("ÉXITO")) {
+                if (msg.contains("éxito")) {
                     findNavController().popBackStack() // Volver atrás si se guardó
                 }
                 viewModel.limpiarMensaje()

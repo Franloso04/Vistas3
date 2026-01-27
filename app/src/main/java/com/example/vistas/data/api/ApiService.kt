@@ -32,7 +32,6 @@ interface ApiService {
         @Part ticket: MultipartBody.Part
     ): Response<GastoResponse>
 
-    // --- CORRECCIÓN: Añadido id_empleado OBLIGATORIO ---
     @FormUrlEncoded
     @POST("gastos.php")
     suspend fun obtenerGastos(
